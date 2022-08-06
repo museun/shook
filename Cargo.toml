@@ -1,0 +1,15 @@
+[package]
+name = "shook"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alto_logger     = "0.3.7"
+anyhow          = "1.0.59"
+async-trait     = "0.1.57"
+log             = "0.4.17"
+serde           = "1.0.142"
+serenity        = "0.11.5"
+simple_env_load = "0.2.0"
+tokio           = { version = "1.20.1", features = ["fs", "rt", "sync", "io-util", "net", "macros"] }
+tokio-stream    = { version = "0.1.9", features = ["sync"] }
