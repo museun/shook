@@ -8,16 +8,14 @@ use crate::{
     BoxedFuture,
 };
 
-mod command;
-pub use command::Command;
-
-mod dispatch;
-pub use dispatch::Dispatch;
-
 mod binding;
-pub use binding::Binding;
-
+mod command;
+mod dispatch;
 mod group;
+
+pub use binding::Binding;
+pub use command::Command;
+pub use dispatch::Dispatch;
 pub use group::Group;
 
 pub trait IntoCallable {

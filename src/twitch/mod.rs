@@ -1,18 +1,15 @@
-use std::sync::Arc;
-
 use crate::{callable::SharedCallable, state::GlobalState};
 
 mod bot;
-
 mod connection;
-use connection::Connection;
-
+mod message;
 mod parser;
-
 mod tags;
-pub use tags::Tags;
-
 mod types;
+
+use connection::Connection;
+pub use message::Message;
+pub use tags::Tags;
 pub(crate) use types::{Identity, Privmsg};
 
 pub async fn create_bot<const N: usize>(
@@ -39,30 +36,4 @@ pub async fn create_bot<const N: usize>(
     log::info!("starting the twitch bot");
     bot.start().await?;
     Ok(())
-}
-
-pub struct Message {
-    pub(crate) sender: Arc<str>,
-    target: Arc<str>,
-    pub(crate) data: Arc<str>,
-    tags: Arc<Tags>,
-}
-
-impl Message {
-    pub fn from_pm(pm: Privmsg) -> Self {
-        Self {
-            sender: pm.user,
-            target: pm.target,
-            data: pm.data,
-            tags: Arc::new(pm.tags),
-        }
-    }
-
-    pub fn channel(&self) -> &str {
-        &self.target
-    }
-
-    pub fn tags(&self) -> &Tags {
-        &self.tags
-    }
 }
