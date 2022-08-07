@@ -37,6 +37,28 @@ pub struct Message {
     args: Option<Arguments>,
 }
 
+impl std::fmt::Debug for Message {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let (a, b);
+        let inner: &dyn std::fmt::Debug = match self.kind {
+            MessageKind::Twitch => {
+                a = self.as_twitch().unwrap();
+                &a
+            }
+            MessageKind::Discord => {
+                b = self.as_discord().unwrap();
+                &b
+            }
+        };
+
+        f.debug_struct("Message")
+            .field("inner", inner)
+            .field("kind", &self.kind)
+            .field("args", &self.args)
+            .finish()
+    }
+}
+
 impl Message {
     pub fn new(inner: impl MessageType, kind: MessageKind, state: GlobalState) -> Self {
         Self {
@@ -75,12 +97,29 @@ impl Message {
         self.kind
     }
 
+    pub async fn streamer_name(&self) -> String {
+        self.state.get::<crate::prelude::Streamer>().await.0.clone()
+    }
+
+    pub async fn is_from_owner(&self) -> bool {
+        self.sender_name() == self.streamer_name().await
+    }
+
     pub fn as_twitch(&self) -> Option<&crate::twitch::Message> {
         self.inner.as_any().downcast_ref()
     }
 
     pub fn as_discord(&self) -> Option<&crate::discord::Message> {
         self.inner.as_any().downcast_ref()
+    }
+
+    pub async fn require_streaming(&self) -> anyhow::Result<()> {
+        let channel = self.streamer_name().await;
+        let client = self.state.get::<crate::helix::HelixClient>().await;
+        if let Ok([_stream]) = client.get_streams([&channel]).await.as_deref() {
+            return Ok(());
+        }
+        anyhow::bail!("{channel} is not streaming")
     }
 
     pub(super) fn get_args(&mut self) -> &mut Option<Arguments> {

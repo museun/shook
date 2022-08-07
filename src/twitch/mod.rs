@@ -16,22 +16,26 @@ pub async fn create_bot<const N: usize>(
     state: GlobalState,
     callables: [SharedCallable; N],
 ) -> anyhow::Result<()> {
-    pub const TWITCH_NO_TLS: &str = "irc.chat.twitch.tv:6667";
+    let config = state.get::<crate::config::Irc>().await.clone();
 
     let reg = types::Registration {
-        name: "shaken_bot",
-        pass: &std::env::var("SHAKEN_TWITCH_OAUTH_TOKEN").unwrap(),
+        name: &config.name,
+        pass: &config.pass,
     };
 
-    log::info!("connecting to twitch");
-    let (identity, conn) = Connection::connect(TWITCH_NO_TLS, reg).await?;
+    log::info!(
+        "connecting to {} (with name {})",
+        &config.addr,
+        &config.name
+    );
+    let (identity, conn) = Connection::connect(&config.addr, reg).await?;
     state.insert(identity).await;
 
     log::info!("connected");
 
     let mut bot = bot::Bot::new(conn, state, callables);
-    log::info!("joining channel");
-    bot.join("#museun").await?;
+    log::info!("joining {}", &config.channel);
+    bot.join(&config.channel).await?;
 
     log::info!("starting the twitch bot");
     bot.start().await?;

@@ -23,7 +23,7 @@ impl Group {
     where
         F: Fn(Message) -> Fut + Clone + Send + Sync + 'static,
         Fut: Future + Send,
-        Fut::Output: Render + Send,
+        Fut::Output: Render + Send + 'static,
     {
         let func = Arc::new({
             let cmd = cmd.clone();
@@ -38,7 +38,7 @@ impl Group {
     where
         F: Fn(Message) -> Fut + Clone + Send + Sync + 'static,
         Fut: Future + Send,
-        Fut::Output: Render + Send,
+        Fut::Output: Render + Send + 'static,
     {
         let func = Arc::new(move |msg| {
             let func = func.clone();

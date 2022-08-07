@@ -12,11 +12,11 @@ pub async fn create_bot<const N: usize>(
     state: GlobalState,
     callables: [SharedCallable; N],
 ) -> anyhow::Result<()> {
-    let token = std::env::var("SHAKEN_DISCORD_TOKEN").unwrap();
+    let config = state.get::<crate::config::Discord>().await.clone();
 
     log::info!("connecting to discord");
     let mut client = Client::builder(
-        &token,
+        &*config.oauth_token,
         GatewayIntents::GUILDS
             | GatewayIntents::GUILD_MESSAGES
             | GatewayIntents::DIRECT_MESSAGES

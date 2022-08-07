@@ -11,12 +11,20 @@ pub mod render;
 pub mod twitch;
 
 mod format;
-pub use format::FormatTime;
+pub use format::{FormatTime, IterExt};
 
 pub mod help;
 pub mod persist;
 
-#[cfg(test)]
+pub mod helix;
+
+pub mod config;
+
+mod serde;
+
+pub mod queue;
+
+// #[cfg(test)]
 pub mod testing;
 
 type BoxedFuture<'a, T> = Pin<Box<dyn Future<Output = T> + 'a + Send>>;
@@ -31,8 +39,16 @@ pub mod prelude {
 
     pub use crate::callable::{self, Binding, Command, Group, IntoCallable, SharedCallable};
     pub use crate::message::Message;
-    pub use crate::render::{Render, Response};
-    pub use crate::state::GlobalState;
+    pub use crate::render::{
+        Bold, Code, Hidden, Italics, Render, RenderFlavor, Response, Simple, SimpleFormat,
+        Strikeout, Underline,
+    };
+    pub use crate::state::{GlobalState, State};
 
     pub use std::sync::Arc;
+
+    #[derive(Clone, Debug)]
+    pub struct Streamer(pub String);
 }
+
+pub const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));

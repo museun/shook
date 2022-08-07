@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use super::{Privmsg, Tags};
 
+#[derive(Debug)]
 pub struct Message {
     pub(crate) sender: Arc<str>,
     target: Arc<str>,

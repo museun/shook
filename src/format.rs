@@ -46,3 +46,25 @@ fn format_seconds(mut secs: u64) -> String {
     }
     time.join(" ")
 }
+
+pub trait IterExt<T>: Iterator<Item = T> + Sized
+where
+    T: AsRef<str>,
+{
+    fn join_with(self, ch: char) -> String {
+        self.fold(String::new(), |mut a, c| {
+            if !a.is_empty() {
+                a.push(ch)
+            }
+            a.push_str(c.as_ref());
+            a
+        })
+    }
+}
+
+impl<T, I> IterExt<T> for I
+where
+    T: AsRef<str>,
+    I: Iterator<Item = T>,
+{
+}

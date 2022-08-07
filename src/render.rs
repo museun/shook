@@ -3,6 +3,47 @@ use crate::{
     prelude::Message,
 };
 
+pub struct SimpleFormat {
+    twitch: Vec<String>,
+    discord: Vec<String>,
+}
+
+impl SimpleFormat {
+    pub fn new(twitch: impl ToString, discord: impl ToString) -> Self {
+        Self {
+            twitch: vec![twitch.to_string()],
+            discord: vec![discord.to_string()],
+        }
+    }
+
+    pub fn more(mut self, twitch: impl ToString, discord: impl ToString) -> Self {
+        self.twitch.push(twitch.to_string());
+        self.discord.push(discord.to_string());
+        self
+    }
+
+    pub fn twitch<T: ToString>(mut self, twitch: impl IntoIterator<Item = T>) -> Self {
+        self.twitch
+            .extend(twitch.into_iter().map(|c| c.to_string()));
+        self
+    }
+
+    pub fn discord<T: ToString>(mut self, discord: impl IntoIterator<Item = T>) -> Self {
+        self.discord
+            .extend(discord.into_iter().map(|c| c.to_string()));
+        self
+    }
+}
+
+impl Render for SimpleFormat {
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+        match flavor {
+            RenderFlavor::Twitch => self.twitch.render(flavor),
+            RenderFlavor::Discord => self.discord.render(flavor),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Response {
     Say(String),
@@ -10,12 +51,80 @@ pub enum Response {
     Problem(String),
 }
 
+impl Response {
+    pub fn builder() -> ResponseBuilder {
+        ResponseBuilder::default()
+    }
+    pub fn say(data: impl Into<String>) -> ResponseBuilder {
+        Self::builder().say(data)
+    }
+    pub fn reply(data: impl Into<String>) -> ResponseBuilder {
+        Self::builder().reply(data)
+    }
+    pub fn problem(data: impl Into<String>) -> ResponseBuilder {
+        Self::builder().problem(data)
+    }
+}
+
+#[derive(Default)]
+pub struct ResponseBuilder(Vec<Response>);
+impl ResponseBuilder {
+    pub fn say(mut self, data: impl Into<String>) -> Self {
+        self.0.push(Response::Say(data.into()));
+        self
+    }
+    pub fn reply(mut self, data: impl Into<String>) -> Self {
+        self.0.push(Response::Reply(data.into()));
+        self
+    }
+    pub fn problem(mut self, data: impl Into<String>) -> Self {
+        self.0.push(Response::Problem(data.into()));
+        self
+    }
+    pub fn finish(self) -> Vec<Response> {
+        self.0
+    }
+}
+
 pub async fn dispatch_and_render(
-    s: &[SharedCallable],
+    callables: &[SharedCallable],
     msg: &Message,
     flavor: RenderFlavor,
 ) -> Vec<Response> {
-    Dispatch::new(s).into_render(msg).await.render(flavor)
+    Dispatch::new(callables)
+        .into_render(msg)
+        .await
+        .render(flavor)
+}
+
+macro_rules! md_generate {
+    ($($ident:ident: $head:expr => $tail:expr)*) => {
+        $(
+        pub struct $ident<T>(pub T);
+        impl<T: std::fmt::Display> std::fmt::Display for $ident<T> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{head}{}{tail}", self.0, head = $head, tail = $tail)
+            }
+        }
+        impl<T: std::fmt::Display + Send + Sync> Render for $ident<T> {
+            fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+                match flavor {
+                    RenderFlavor::Twitch => self.0.to_string().render(flavor),
+                    RenderFlavor::Discord => self.to_string().render(flavor),
+                }
+            }
+        }
+        )*
+    };
+}
+
+md_generate! {
+    Code:      "`"  => "`"
+    Bold:      "**" => "**"
+    Underline: "_"  => "__"
+    Italics:   "_"  => "_"
+    Strikeout: "~"  => "~"
+    Hidden:    "<"  => ">"
 }
 
 #[non_exhaustive]
@@ -27,15 +136,37 @@ pub enum RenderFlavor {
 
 pub trait Render
 where
-    Self: Send + Sync + 'static,
+    Self: Send + Sync,
 {
     fn render(&self, flavor: RenderFlavor) -> Vec<Response>;
-
     fn boxed(self) -> Box<dyn Render>
     where
-        Self: Sized,
+        Self: Sized + 'static,
     {
         Box::new(self)
+    }
+}
+
+impl<L: Render, R: Render> Render for (L, R) {
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+        match flavor {
+            RenderFlavor::Twitch => self.0.render(flavor),
+            RenderFlavor::Discord => self.1.render(flavor),
+        }
+    }
+}
+
+pub struct Simple<L, R> {
+    pub twitch: L,
+    pub discord: R,
+}
+
+impl<L: Render, R: Render> Render for Simple<L, R> {
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+        match flavor {
+            RenderFlavor::Twitch => self.twitch.render(flavor),
+            RenderFlavor::Discord => self.discord.render(flavor),
+        }
     }
 }
 
@@ -49,6 +180,12 @@ impl Render for BoxedRender {
     #[inline(always)]
     fn boxed(self) -> Self {
         self
+    }
+}
+
+impl<T: Render> Render for &T {
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+        (*self).render(flavor)
     }
 }
 

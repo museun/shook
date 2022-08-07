@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use serenity::model::prelude::ChannelId;
 
+#[derive(Debug)]
 pub struct Message {
     pub(crate) sender: Arc<str>,
     target: ChannelId,
@@ -17,7 +18,6 @@ impl Message {
         }
     }
 
-    #[cfg(test)]
     pub fn mock(sender: &str, target: u64, data: &str) -> Self {
         Self {
             sender: sender.into(),
