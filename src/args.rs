@@ -1,8 +1,36 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    str::FromStr,
+};
 
 #[derive(Default, Debug, Clone)]
 pub struct Arguments {
     pub map: HashMap<String, String>,
+}
+
+impl Arguments {
+    pub fn get(&self, key: &str) -> Option<&str> {
+        self.map.get(key).map(|s| &**s)
+    }
+
+    pub fn get_parsed<T>(&self, key: &str) -> Option<anyhow::Result<T>>
+    where
+        T: FromStr,
+        T::Err: Into<anyhow::Error>,
+    {
+        self.get(key)
+            .map(<str>::parse)
+            .map(|c| c.map_err(Into::into))
+    }
+}
+
+impl std::ops::Index<&str> for Arguments {
+    type Output = str;
+
+    fn index(&self, key: &str) -> &Self::Output {
+        self.get(key)
+            .unwrap_or_else(|| panic!("{key} should exist"))
+    }
 }
 
 #[derive(Debug)]
@@ -15,6 +43,7 @@ pub enum Match<T> {
 
 #[derive(Default, Debug)]
 pub struct ExampleArgs {
+    pub usage: Box<str>,
     pub args: Box<[ArgType]>,
 }
 
@@ -28,6 +57,7 @@ impl ExampleArgs {
     const REQUIRED: Kind = Kind::Required;
     const OPTIONAL: Kind = Kind::Optional;
     const VARIADIC: Kind = Kind::Variadic;
+
     pub fn extract(&self, mut input: &str) -> Match<HashMap<String, String>> {
         if input.is_empty() {
             if self.contains(&Self::REQUIRED) {
@@ -112,7 +142,10 @@ impl ExampleArgs {
             }
         }
 
-        Ok(Self { args: args.into() })
+        Ok(Self {
+            usage: Box::from(input),
+            args: args.into(),
+        })
     }
 }
 

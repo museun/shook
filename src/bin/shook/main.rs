@@ -1,43 +1,27 @@
-#![cfg_attr(debug_assertions, allow(dead_code, unused_variables,))]
+use shook::{discord, prelude::GlobalState, twitch};
 
-use std::{future::Future, pin::Pin};
-
-mod args;
-
-mod binding;
-
-mod state;
-use crate::state::SharedState;
-
-mod discord;
-mod twitch;
-
-mod render;
-use binding::bind;
-pub use render::Render;
-
-pub mod message;
-
-type BoxedFuture<'a, T> = Pin<Box<dyn Future<Output = T> + 'a + Send>>;
+mod builtin;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     simple_env_load::load_env_from([".dev.env"]);
     alto_logger::init_term_logger()?;
 
-    let state = SharedState::default();
+    let state = GlobalState::default();
 
-    let callables = [bind(("!hello", "says hello"), |msg| async move {
-        format!("hello, {}", msg.sender_name())
-    })?];
+    let callables = [
+        builtin::Builtin::bind(state.clone()).await?, //
+    ];
 
     let twitch = tokio::task::spawn({
         let state = state.clone();
+        // TODO this should retry and reconnect
         twitch::create_bot(state, callables.clone())
     });
 
     let discord = tokio::task::spawn({
         let state = state.clone();
+        // TODO what are the error states for this?
         discord::create_bot(state, callables)
     });
 

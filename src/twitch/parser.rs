@@ -32,7 +32,7 @@ fn prefix<'a>(input: &mut &'a str) -> Option<&'a str> {
 }
 
 fn command<'a>(input: &mut &'a str) -> &'a str {
-    // TODO we got a panic ehre
+    // TODO we got a panic here
     let (head, tail) = input.split_once(' ').expect("malformed message");
     *input = tail;
     head

@@ -1,11 +1,35 @@
+use crate::{
+    callable::{Dispatch, SharedCallable},
+    prelude::Message,
+};
+
+#[derive(Clone, Debug)]
+pub enum Response {
+    Say(String),
+    Reply(String),
+    Problem(String),
+}
+
+pub async fn dispatch_and_render(
+    s: &[SharedCallable],
+    msg: &Message,
+    flavor: RenderFlavor,
+) -> Vec<Response> {
+    Dispatch::new(s).into_render(msg).await.render(flavor)
+}
+
+#[non_exhaustive]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
+pub enum RenderFlavor {
+    Twitch,
+    Discord,
+}
+
 pub trait Render
 where
     Self: Send + Sync + 'static,
 {
-    fn render_twitch(&self) -> Vec<Response>;
-    fn render_discord(&self) -> Vec<Response> {
-        self.render_twitch()
-    }
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response>;
 
     fn boxed(self) -> Box<dyn Render>
     where
@@ -18,104 +42,80 @@ where
 pub type BoxedRender = Box<dyn Render>;
 
 impl Render for BoxedRender {
-    fn render_twitch(&self) -> Vec<Response> {
-        (&**self).render_twitch()
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+        (**self).render(flavor)
     }
 
-    fn render_discord(&self) -> Vec<Response> {
-        (&**self).render_discord()
+    #[inline(always)]
+    fn boxed(self) -> Self {
+        self
     }
-}
-
-#[derive(Clone)]
-pub enum Response {
-    Say(String),
-    Reply(String),
-    Problem(String),
 }
 
 impl Render for Response {
-    fn render_twitch(&self) -> Vec<Response> {
+    fn render(&self, _: RenderFlavor) -> Vec<Response> {
         vec![self.clone()]
     }
 }
 
 impl<T: Render, const N: usize> Render for [T; N] {
-    fn render_twitch(&self) -> Vec<Response> {
-        self.iter().flat_map(<_>::render_twitch).collect()
-    }
-
-    fn render_discord(&self) -> Vec<Response> {
-        self.iter().flat_map(<_>::render_discord).collect()
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+        self.iter().flat_map(|this| this.render(flavor)).collect()
     }
 }
 
 impl<T: Render> Render for Vec<T> {
-    fn render_twitch(&self) -> Vec<Response> {
-        self.iter().flat_map(<_>::render_twitch).collect()
-    }
-
-    fn render_discord(&self) -> Vec<Response> {
-        self.iter().flat_map(<_>::render_discord).collect()
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+        self.iter().flat_map(|this| this.render(flavor)).collect()
     }
 }
 
 impl Render for str {
-    fn render_twitch(&self) -> Vec<Response> {
-        self.to_string().render_twitch()
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+        if self.trim().is_empty() {
+            return vec![];
+        }
+        self.to_string().render(flavor)
     }
 }
 
 impl Render for &'static str {
-    fn render_twitch(&self) -> Vec<Response> {
-        self.to_string().render_twitch()
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+        if self.trim().is_empty() {
+            return vec![];
+        }
+        self.to_string().render(flavor)
     }
 }
 
 impl Render for String {
-    fn render_twitch(&self) -> Vec<Response> {
+    fn render(&self, _: RenderFlavor) -> Vec<Response> {
+        if self.trim().is_empty() {
+            return vec![];
+        }
         vec![Response::Say(self.to_string())]
     }
 }
 
-impl Render for bool {
-    fn render_twitch(&self) -> Vec<Response> {
-        match *self {
-            true => "true",
-            false => "false",
-        }
-        .render_twitch()
-    }
-}
-
 impl Render for () {
-    fn render_twitch(&self) -> Vec<Response> {
+    fn render(&self, _: RenderFlavor) -> Vec<Response> {
         vec![]
     }
 }
 
 impl<T: Render> Render for anyhow::Result<T> {
-    fn render_twitch(&self) -> Vec<Response> {
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
         match self {
-            Ok(r) => r.render_twitch(),
-            Err(e) => vec![Response::Problem(e.to_string())],
-        }
-    }
-
-    fn render_discord(&self) -> Vec<Response> {
-        match self {
-            Ok(r) => r.render_discord(),
+            Ok(r) => r.render(flavor),
             Err(e) => vec![Response::Problem(e.to_string())],
         }
     }
 }
 
 impl<T: Render> Render for Option<T> {
-    fn render_twitch(&self) -> Vec<Response> {
-        self.as_ref().map(<_>::render_twitch).unwrap_or_default()
-    }
-
-    fn render_discord(&self) -> Vec<Response> {
-        self.as_ref().map(<_>::render_discord).unwrap_or_default()
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+        self.as_ref()
+            .map(|this| this.render(flavor))
+            .unwrap_or_default()
     }
 }

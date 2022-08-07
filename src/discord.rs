@@ -2,26 +2,26 @@ use std::sync::Arc;
 
 use serenity::{
     framework::StandardFramework,
-    model::prelude::Message,
+    model::prelude::{ChannelId, Message as DiscordMessage},
     prelude::{Context, EventHandler, GatewayIntents},
     Client,
 };
-use tokio_stream::StreamExt;
 
 use crate::{
-    binding::{Callable, Dispatch},
+    callable::SharedCallable,
     message::Message as ShookMessage,
-    message::{DiscordMessage, MessageKind},
-    render::Response,
-    state::SharedState,
+    message::MessageKind,
+    render::{dispatch_and_render, RenderFlavor, Response},
+    state::GlobalState,
 };
 
 pub async fn create_bot<const N: usize>(
-    state: SharedState,
-    callables: [Arc<Callable>; N],
+    state: GlobalState,
+    callables: [SharedCallable; N],
 ) -> anyhow::Result<()> {
     let token = std::env::var("SHAKEN_DISCORD_TOKEN").unwrap();
 
+    log::info!("connecting to discord");
     let mut client = Client::builder(
         &token,
         GatewayIntents::GUILDS
@@ -33,43 +33,69 @@ pub async fn create_bot<const N: usize>(
     .framework(StandardFramework::new())
     .await?;
 
+    log::info!("connected");
+    log::info!("starting the discord bot");
     client.start().await.map_err(Into::into)
 }
 
 struct Handler<const N: usize> {
-    state: SharedState,
-    callables: [Arc<Callable>; N],
+    state: GlobalState,
+    callables: [SharedCallable; N],
 }
 
 #[async_trait::async_trait]
 impl<const N: usize> EventHandler for Handler<N> {
-    async fn message(&self, ctx: Context, msg: Message) {
+    async fn message(&self, ctx: Context, msg: DiscordMessage) {
+        let id = msg.channel_id;
+
         let sm = ShookMessage::new(
-            DiscordMessage::from_serenity(msg),
+            Message::from_serenity(msg),
             MessageKind::Discord,
             self.state.clone(),
         );
 
-        let mut stream = Dispatch::new(&self.callables, std::convert::identity)
-            .dispatch(&sm)
-            .await;
-
-        let id = sm.as_discord().unwrap().channel_id();
-
-        while let Some(resp) = stream.next().await {
-            for resp in resp.render_discord() {
-                let out = match resp {
-                    Response::Say(msg) => {
-                        let _ = id.say(&ctx, msg).await;
-                    }
-                    Response::Reply(msg) => {
-                        let _ = id.say(&ctx, msg).await;
-                    }
-                    Response::Problem(msg) => {
-                        let _ = id.say(&ctx, format!("a problem occurred: {msg}")).await;
-                    }
-                };
-            }
+        for resp in dispatch_and_render(&self.callables, &sm, RenderFlavor::Discord).await {
+            match resp {
+                Response::Say(msg) => {
+                    let _ = id.say(&ctx, msg).await;
+                }
+                Response::Reply(msg) => {
+                    // TODO reply
+                    let _ = id.say(&ctx, msg).await;
+                }
+                Response::Problem(msg) => {
+                    let _ = id.say(&ctx, format!("a problem occurred: {msg}")).await;
+                }
+            };
         }
+    }
+}
+
+pub struct Message {
+    pub(crate) sender: Arc<str>,
+    target: ChannelId,
+    pub(crate) data: Arc<str>,
+}
+
+impl Message {
+    pub fn from_serenity(msg: serenity::model::prelude::Message) -> Self {
+        Self {
+            sender: msg.author.name.into(),
+            target: msg.channel_id,
+            data: msg.content.into(),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn mock(sender: &str, target: u64, data: &str) -> Self {
+        Self {
+            sender: sender.into(),
+            target: ChannelId(target),
+            data: data.into(),
+        }
+    }
+
+    pub const fn channel_id(&self) -> ChannelId {
+        self.target
     }
 }

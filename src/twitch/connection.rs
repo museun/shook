@@ -88,6 +88,10 @@ impl Connection {
     ) -> anyhow::Result<Identity> {
         loop {
             let n = stream.read_line(buf).await?;
+            if n == 0 {
+                anyhow::bail!("unexpected eof")
+            }
+
             let mut raw = &buf[..n - 2];
 
             let tags = raw

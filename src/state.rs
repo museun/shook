@@ -7,9 +7,9 @@ use std::{
 use tokio::sync::{RwLock, RwLockMappedWriteGuard, RwLockReadGuard, RwLockWriteGuard};
 
 #[derive(Default, Clone)]
-pub struct SharedState(Arc<RwLock<State>>);
+pub struct GlobalState(Arc<RwLock<State>>);
 
-impl SharedState {
+impl GlobalState {
     pub fn new(state: State) -> Self {
         Self(Arc::new(RwLock::new(state)))
     }
@@ -74,23 +74,6 @@ impl State {
         }
     }
 
-    pub fn with<T>(mut self, val: T) -> Self
-    where
-        T: Any + Send + Sync + 'static,
-    {
-        self.insert(val);
-        self
-    }
-
-    pub fn extract<'a, T, U, F>(&'a self, map: F) -> anyhow::Result<&'a U>
-    where
-        T: Any + Send + Sync + 'static,
-        U: Send + 'static,
-        F: Fn(&'a T) -> &'a U,
-    {
-        self.get::<T>().map(map)
-    }
-
     pub fn get<T>(&self) -> anyhow::Result<&T>
     where
         T: Any + Send + Sync + 'static,
@@ -109,13 +92,6 @@ impl State {
             .get_mut(&TypeId::of::<T>())
             .and_then(|c| c.downcast_mut())
             .with_context(|| anyhow::anyhow!("could not find {}", Self::name_of::<T>()))
-    }
-
-    pub fn has<T>(&self) -> bool
-    where
-        T: Any + Send + Sync + 'static,
-    {
-        self.get::<T>().is_ok()
     }
 
     fn name_of<T: 'static>() -> &'static str {

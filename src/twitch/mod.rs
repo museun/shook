@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
-use crate::{binding::Callable, state::SharedState};
+use crate::{callable::SharedCallable, state::GlobalState};
+
+mod bot;
 
 mod connection;
-pub use connection::Connection;
+use connection::Connection;
 
 mod parser;
 
@@ -11,11 +13,11 @@ mod tags;
 pub use tags::Tags;
 
 mod types;
-pub use types::{Identity, Privmsg};
+pub(crate) use types::{Identity, Privmsg};
 
 pub async fn create_bot<const N: usize>(
-    state: SharedState,
-    callables: [Arc<Callable>; N],
+    state: GlobalState,
+    callables: [SharedCallable; N],
 ) -> anyhow::Result<()> {
     pub const TWITCH_NO_TLS: &str = "irc.chat.twitch.tv:6667";
 
@@ -26,16 +28,41 @@ pub async fn create_bot<const N: usize>(
 
     log::info!("connecting to twitch");
     let (identity, conn) = Connection::connect(TWITCH_NO_TLS, reg).await?;
+    state.insert(identity).await;
+
     log::info!("connected");
 
     let mut bot = bot::Bot::new(conn, state, callables);
-
     log::info!("joining channel");
     bot.join("#museun").await?;
 
-    log::info!("starting the bot");
+    log::info!("starting the twitch bot");
     bot.start().await?;
     Ok(())
 }
 
-mod bot;
+pub struct Message {
+    pub(crate) sender: Arc<str>,
+    target: Arc<str>,
+    pub(crate) data: Arc<str>,
+    tags: Arc<Tags>,
+}
+
+impl Message {
+    pub fn from_pm(pm: Privmsg) -> Self {
+        Self {
+            sender: pm.user,
+            target: pm.target,
+            data: pm.data,
+            tags: Arc::new(pm.tags),
+        }
+    }
+
+    pub fn channel(&self) -> &str {
+        &self.target
+    }
+
+    pub fn tags(&self) -> &Tags {
+        &self.tags
+    }
+}

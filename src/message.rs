@@ -1,62 +1,10 @@
 use std::{any::Any, sync::Arc};
 
-use serenity::model::prelude::ChannelId;
-
-use crate::{
-    args::Arguments,
-    state::SharedState,
-    twitch::{Privmsg, Tags},
-};
-
-pub struct TwitchMessage {
-    sender: Arc<str>,
-    target: Arc<str>,
-    data: Arc<str>,
-    tags: Arc<Tags>,
-}
-
-impl TwitchMessage {
-    pub fn from_pm(pm: Privmsg) -> Self {
-        Self {
-            sender: pm.user,
-            target: pm.target,
-            data: pm.data,
-            tags: Arc::new(pm.tags),
-        }
-    }
-
-    pub fn channel(&self) -> &str {
-        &self.target
-    }
-
-    pub fn tags(&self) -> &Tags {
-        &self.tags
-    }
-}
-
-pub struct DiscordMessage {
-    sender: Arc<str>,
-    target: ChannelId,
-    data: Arc<str>,
-}
-
-impl DiscordMessage {
-    pub fn from_serenity(msg: serenity::model::prelude::Message) -> Self {
-        Self {
-            sender: msg.author.name.into(),
-            target: msg.channel_id,
-            data: msg.content.into(),
-        }
-    }
-
-    pub fn channel_id(&self) -> ChannelId {
-        self.target
-    }
-}
+use crate::{args::Arguments, state::GlobalState};
 
 #[rustfmt::skip]
 macro_rules! message {
-($($ident:ident)*) => {
+($($ident:path)*) => {
     $(
         impl MessageType for $ident {
             fn data(&self) -> &str { &self.data }
@@ -68,8 +16,8 @@ macro_rules! message {
 }
 
 message! {
-    TwitchMessage
-    DiscordMessage
+    crate::twitch::Message
+    crate::discord::Message
 }
 
 pub trait MessageType
@@ -85,12 +33,12 @@ where
 pub struct Message {
     inner: Arc<dyn MessageType>,
     kind: MessageKind,
-    state: SharedState,
-    pub(super) args: Option<Arguments>,
+    state: GlobalState,
+    args: Option<Arguments>,
 }
 
 impl Message {
-    pub fn new(inner: impl MessageType, kind: MessageKind, state: SharedState) -> Self {
+    pub fn new(inner: impl MessageType, kind: MessageKind, state: GlobalState) -> Self {
         Self {
             inner: Arc::new(inner),
             kind,
@@ -119,7 +67,7 @@ impl Message {
         self.args.as_ref().unwrap()
     }
 
-    pub fn state(&self) -> &SharedState {
+    pub const fn state(&self) -> &GlobalState {
         &self.state
     }
 
@@ -127,12 +75,16 @@ impl Message {
         self.kind
     }
 
-    pub fn as_twitch(&self) -> Option<&TwitchMessage> {
+    pub fn as_twitch(&self) -> Option<&crate::twitch::Message> {
         self.inner.as_any().downcast_ref()
     }
 
-    pub fn as_discord(&self) -> Option<&DiscordMessage> {
+    pub fn as_discord(&self) -> Option<&crate::discord::Message> {
         self.inner.as_any().downcast_ref()
+    }
+
+    pub(super) fn get_args(&mut self) -> &mut Option<Arguments> {
+        &mut self.args
     }
 
     fn split_command(input: &str) -> &str {
@@ -143,7 +95,8 @@ impl Message {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[non_exhaustive]
 pub enum MessageKind {
     Twitch,
     Discord,
