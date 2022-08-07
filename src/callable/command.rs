@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::args::ExampleArgs;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Command {
     pub command: Arc<str>,
     pub aliases: Vec<Arc<str>>,

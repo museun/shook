@@ -2,3 +2,4 @@
 .dev.env
 *.json
 *.yml
+default_help.*

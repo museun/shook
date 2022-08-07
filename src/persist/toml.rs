@@ -2,16 +2,17 @@ use super::{AnyhowFut, PersistFormat};
 use ::serde::{Deserialize, Serialize};
 use tokio::io::{AsyncRead, AsyncReadExt as _, AsyncWrite, AsyncWriteExt as _};
 
-pub struct Json;
-impl PersistFormat for Json {
+pub struct Toml;
+
+impl PersistFormat for Toml {
     fn serialize<'a, T, W>(data: &'a T, mut out: W) -> AnyhowFut<'a, ()>
     where
         T: Serialize + Sync,
         W: AsyncWrite + Unpin + Send + Sized + 'a,
     {
         Box::pin(async move {
-            let data = serde_json::to_vec_pretty(data)?;
-            Ok(out.write_all(&data).await?)
+            let data = toml::to_string_pretty(data)?;
+            Ok(out.write_all(data.as_bytes()).await?)
         })
     }
 
@@ -23,11 +24,11 @@ impl PersistFormat for Json {
         Box::pin(async move {
             let mut out = String::new();
             input.read_to_string(&mut out).await?;
-            Ok(serde_json::from_str(&out)?)
+            Ok(toml::from_str(&out)?)
         })
     }
 
     fn ext() -> &'static str {
-        "json"
+        "toml"
     }
 }

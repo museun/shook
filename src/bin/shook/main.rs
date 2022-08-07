@@ -1,5 +1,7 @@
 use shook::{
     discord,
+    help::Registry,
+    persist::{PersistExt, Yaml},
     prelude::{GlobalState, State, Streamer},
     twitch,
 };
@@ -18,6 +20,13 @@ async fn load_config(state: &mut State) -> anyhow::Result<()> {
     log::info!("succesfully loaded env");
     Ok(())
 }
+
+// async fn load_help(state: &mut State) -> anyhow::Result<()> {
+//     // TODO make the default if this doesn't exist
+//     let registry = Registry::load_from_file::<Yaml>(&"default_help").await?;
+//     state.insert(registry);
+//     Ok(())
+// }
 
 async fn init_twitch(state: &mut State) -> anyhow::Result<()> {
     use shook::{config, helix::*};
@@ -55,6 +64,9 @@ async fn main() -> anyhow::Result<()> {
     let mut state = State::default();
     log::info!("loading configuration");
     load_config(&mut state).await?;
+
+    log::info!("loading help");
+    // load_help(&mut state).await?;
 
     log::info!("getting twitch clients");
     init_twitch(&mut state).await?;

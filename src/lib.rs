@@ -33,6 +33,11 @@ type BoxedFuture<'a, T> = Pin<Box<dyn Future<Output = T> + 'a + Send>>;
 
 #[macro_use]
 pub mod prelude {
+    pub use std::sync::Arc;
+
+    #[derive(Clone, Debug)]
+    pub struct Streamer(pub String);
+
     pub fn cmd(cmd: &str) -> Command {
         Command::new(cmd)
     }
@@ -44,11 +49,6 @@ pub mod prelude {
         Strikeout, Underline,
     };
     pub use crate::state::{GlobalState, State};
-
-    pub use std::sync::Arc;
-
-    #[derive(Clone, Debug)]
-    pub struct Streamer(pub String);
 }
 
 pub const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
