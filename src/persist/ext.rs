@@ -1,12 +1,13 @@
 use super::{AnyhowFut, Persist, PersistFormat};
-use std::path::Path;
 use tokio::fs::File;
 
+type Path<'a> = dyn AsRef<std::path::Path> + Send + Sync + 'a;
+
 pub trait PersistExt: Persist + Send + Sync {
-    fn save_to_file<'a, K: PersistFormat>(
-        &'a self,
-        path: &'a (dyn AsRef<Path> + Send + Sync + 'a),
-    ) -> AnyhowFut<'a, ()> {
+    fn save_to_file<'a, K>(&'a self, path: &'a Path<'a>) -> AnyhowFut<'a, ()>
+    where
+        K: PersistFormat,
+    {
         let path = K::with_ext(path.as_ref());
         Box::pin(async move {
             let mut file = File::create(path).await?;
@@ -14,9 +15,10 @@ pub trait PersistExt: Persist + Send + Sync {
         })
     }
 
-    fn load_from_file<'a, K: PersistFormat>(
-        path: &'a (dyn AsRef<Path> + Sync + Send + 'a),
-    ) -> AnyhowFut<'a, Self> {
+    fn load_from_file<'a, K>(path: &'a Path<'a>) -> AnyhowFut<'a, Self>
+    where
+        K: PersistFormat,
+    {
         let path = K::with_ext(path.as_ref());
         Box::pin(async move {
             let mut file = File::open(path).await?;
@@ -25,4 +27,4 @@ pub trait PersistExt: Persist + Send + Sync {
     }
 }
 
-impl<T: Send + Sync + 'static> PersistExt for T where T: Persist {}
+impl<T> PersistExt for T where T: Persist + 'static {}

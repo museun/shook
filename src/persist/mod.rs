@@ -14,31 +14,31 @@ pub use json::Json;
 mod yaml;
 pub use yaml::Yaml;
 
-mod persist_ext;
-pub use persist_ext::PersistExt;
+mod ext;
+pub use ext::PersistExt;
+
+type Write = dyn AsyncWrite + Unpin + Send;
+type Read = dyn AsyncRead + Unpin + Send;
 
 pub trait Persist
 where
     for<'de> Self: Serialize + Deserialize<'de>,
+    Self: Send + Sync,
 {
-    fn save<'a, K: PersistFormat>(
-        &'a self,
-        out: &'a mut (dyn AsyncWrite + Unpin + Send),
-    ) -> AnyhowFut<'a, ()>
+    fn save<'a, K>(&'a self, out: &'a mut Write) -> AnyhowFut<'a, ()>
     where
-        Self: Send + Sync,
+        K: PersistFormat,
     {
         Box::pin(K::serialize(self, out))
     }
 
-    fn load<'a, K: PersistFormat>(
-        input: &'a mut (dyn AsyncRead + Unpin + Send),
-    ) -> BoxFuture<'a, anyhow::Result<Self>>
+    fn load<'a, K>(input: &'a mut Read) -> AnyhowFut<'a, Self>
     where
-        Self: Sized + Send + Sync + 'a,
+        Self: Sized + 'a,
+        K: PersistFormat,
     {
         Box::pin(K::deserialize(input))
     }
 }
 
-impl<T: for<'de> Deserialize<'de> + Serialize> Persist for T {}
+impl<T> Persist for T where T: for<'de> Deserialize<'de> + Serialize + Send + Sync {}
