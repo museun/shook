@@ -127,10 +127,7 @@ impl Message {
     }
 
     fn split_command(input: &str) -> &str {
-        input
-            .split_once(' ')
-            .map(|(k, _)| k)
-            .unwrap_or_else(|| input)
+        input.split_once(' ').map_or_else(|| input, |(k, _)| k)
     }
 }
 

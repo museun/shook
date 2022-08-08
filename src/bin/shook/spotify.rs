@@ -63,7 +63,7 @@ impl SpotifyClient {
 
         let track = match song.item? {
             PlayableItem::Track(track) => track,
-            _ => return None,
+            e => return None,
         };
 
         let id = track.id?;

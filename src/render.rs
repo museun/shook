@@ -186,7 +186,7 @@ impl Render for &'static str {
         if self.trim().is_empty() {
             return vec![];
         }
-        self.to_string().render(flavor)
+        (*self).render(flavor)
     }
 }
 

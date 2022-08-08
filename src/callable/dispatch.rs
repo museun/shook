@@ -24,7 +24,7 @@ where
 
     pub fn dispatch(self, msg: &Message) -> impl Stream<Item = BoxedRender> {
         let (tx, rx) = tokio::sync::mpsc::channel(std::cmp::max(1, self.seq.len()));
-        for callable in self.seq.iter().map(|c| c.clone()) {
+        for callable in self.seq.iter().map(Clone::clone) {
             let tx = tx.clone();
             let msg = msg.clone();
             let _ = tokio::spawn(async move {

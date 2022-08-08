@@ -1,4 +1,4 @@
-use shook::{help::Registry, prelude::*};
+use shook::prelude::*;
 
 // TODO redo this
 enum Match {
@@ -38,7 +38,7 @@ impl Crate {
         let data = format!("{} = {} {}", self.name, self.max_version, exact);
         [&self.description, &self.repository, &self.documentation]
             .into_iter()
-            .flat_map(Option::as_ref)
+            .filter_map(Option::as_ref)
             .zip(["desc", "repo", "docs"])
             .fold(Response::say(data), |resp, (opt, ty)| {
                 resp.say(format!("{ty}: {opt}"))

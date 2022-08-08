@@ -53,7 +53,6 @@ where
     {
         let cmd = Arc::new(cmd);
         let func = (cmd.clone(), {
-            let cmd = cmd.clone();
             let this = self.this.clone();
             move |msg: Message| {
                 super::wrap(msg, cmd.clone(), {

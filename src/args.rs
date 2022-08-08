@@ -110,7 +110,7 @@ impl ExampleArgs {
                 Ok(data.into())
             };
 
-            let all_alpha = |s: &[u8]| s.iter().all(|c| c.is_ascii_alphabetic());
+            let all_alpha = |s: &[u8]| s.iter().all(u8::is_ascii_alphabetic);
 
             let arg = match token.as_bytes() {
                 [b'<', arg @ .., b'.', b'.', b'>'] if all_alpha(arg) => ArgType {

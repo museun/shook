@@ -27,7 +27,7 @@ impl Registry {
     pub fn get_command(&self, namespace: &str, cmd: &str) -> Option<anyhow::Result<Command>> {
         self.descriptions_for(namespace)?
             .get(cmd)
-            .map(|c| c.parse_command())
+            .map(Description::parse_command)
     }
 
     pub fn get_all_descriptions(&self) -> impl Iterator<Item = &Descriptions> {
@@ -67,15 +67,15 @@ impl Descriptions {
     }
 
     pub fn command_names(&self) -> impl Iterator<Item = &str> {
-        self.descriptions.iter().flat_map(|c| c.commands())
+        self.descriptions.iter().flat_map(Description::commands)
     }
 
     pub fn description_for(&self, name: &str) -> Option<&str> {
-        self.get(name).map(|d| d.description())
+        self.get(name).map(Description::description)
     }
 
     pub fn usage_for(&self, name: &str) -> Option<Cow<'_, str>> {
-        self.get(name).map(|d| d.usage())
+        self.get(name).map(Description::usage)
     }
 }
 
@@ -128,11 +128,11 @@ impl<'a> From<&'a Command> for Description {
     fn from(cmd: &'a Command) -> Self {
         Self {
             command: cmd.command.to_string(),
-            aliases: cmd.aliases.iter().map(|s| s.to_string()).collect(),
+            aliases: cmd.aliases.iter().map(<_>::to_string).collect(),
             description: cmd
                 .description
                 .as_ref()
-                .map(|s| s.to_string())
+                .map(<_>::to_string)
                 .or_else(|| cmd.example.as_ref().map(|c| c.usage.to_string()))
                 .unwrap_or_else(|| cmd.command.to_string()),
             usage: cmd.example.as_ref().map(|c| c.usage.to_string()),

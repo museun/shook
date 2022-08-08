@@ -18,7 +18,7 @@ impl Tags {
 
         let map = head[1..]
             .split(';')
-            .flat_map(|s| s.split_once('='))
+            .filter_map(|s| s.split_once('='))
             .map(|(k, v)| (Box::from(k.trim()), Box::from(v.trim())))
             .collect();
 

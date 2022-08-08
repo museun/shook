@@ -1,7 +1,11 @@
 use std::{collections::BTreeSet, time::SystemTime};
 
 use anyhow::Context;
-use shook::{help::Registry, prelude::*, FormatTime};
+use shook::{
+    help::{Descriptions, Registry},
+    prelude::*,
+    FormatTime,
+};
 use tokio::time::Instant;
 
 pub struct Builtin(Instant);
@@ -56,7 +60,7 @@ impl Builtin {
                 let f = format_help_twitch(
                     &registry
                         .get_all_descriptions()
-                        .flat_map(|d| d.command_names())
+                        .flat_map(Descriptions::command_names)
                         .collect(),
                 );
                 Ok(Simple {
@@ -69,7 +73,7 @@ impl Builtin {
 
         fn format_help_twitch(desc: &BTreeSet<&str>) -> Vec<Response> {
             const MAX: usize = 10;
-            let (mut left, right) = desc.into_iter().enumerate().fold(
+            let (mut left, right) = desc.iter().enumerate().fold(
                 (Response::builder(), String::new()),
                 |(mut left, mut right), (i, c)| {
                     if i != 0 && i % MAX == 0 {

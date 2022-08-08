@@ -33,7 +33,7 @@ impl AnotherViewer {
 
     async fn speak(self: Arc<Self>, msg: Message) -> impl Render {
         let ctx = msg.args().get("context");
-        self.generate(ctx.as_deref()).await
+        self.generate(ctx).await
     }
 
     async fn listen(self: Arc<Self>, msg: Message) -> impl Render {

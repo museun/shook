@@ -1,11 +1,7 @@
 use std::{future::Future, sync::Arc};
 
 use super::{Command, Dispatch, IntoCallable, SharedCallable};
-use crate::{
-    help::Registry,
-    prelude::{Message, State},
-    render::Render,
-};
+use crate::{help::Registry, prelude::Message, render::Render};
 
 pub struct Group<'a> {
     callables: Vec<SharedCallable>,

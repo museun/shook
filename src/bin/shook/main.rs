@@ -11,7 +11,7 @@ mod builtin;
 mod crates;
 mod spotify;
 
-async fn load_config(state: &mut State) -> anyhow::Result<()> {
+fn load_config(state: &mut State) -> anyhow::Result<()> {
     use shook::config::*;
     state.insert(Irc::load_from_env()?);
     state.insert(Twitch::load_from_env()?);
@@ -62,7 +62,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut state = State::default();
     log::info!("loading configuration");
-    load_config(&mut state).await?;
+    load_config(&mut state)?;
 
     log::info!("loading help");
     load_help(&mut state).await?;
