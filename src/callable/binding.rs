@@ -36,19 +36,18 @@ where
 
     pub fn bind<F, Fut>(mut self, cmd: Command, func: F) -> Self
     where
-        F: Fn(Arc<T>, Message) -> Fut + Clone + Send + Sync + 'static,
+        F: Fn(Arc<T>, Message) -> Fut + Copy + Send + Sync + 'static,
         Fut: Future + Send,
         Fut::Output: Render + Send + 'static,
     {
-        let func = Arc::new({
+        let cmd = Arc::new(cmd);
+        let func = (cmd.clone(), {
             let cmd = cmd.clone();
             let this = self.this.clone();
             move |msg: Message| {
                 super::wrap(msg, cmd.clone(), {
-                    let func = func.clone();
                     let this = this.clone();
                     move |msg| {
-                        let func = func.clone();
                         let this = this.clone();
                         async move { func(this, msg).await }
                     }
@@ -56,25 +55,24 @@ where
             }
         });
 
-        self.callables.push(Arc::new((cmd, func)));
+        self.callables.push(Arc::new(func));
         self
     }
 
     pub fn listen<F, Fut>(mut self, func: F) -> Self
     where
-        F: Fn(Arc<T>, Message) -> Fut + Clone + Send + Sync + 'static,
+        F: Fn(Arc<T>, Message) -> Fut + Copy + Send + Sync + 'static,
         Fut: Future + Send,
         Fut::Output: Render + Send + 'static,
     {
-        let func = Arc::new({
+        let func = {
             let this = self.this.clone();
             move |msg| {
-                let func = func.clone();
                 let this = this.clone();
                 async move { func(this, msg).await.boxed() }
             }
-        });
-        self.callables.push(func);
+        };
+        self.callables.push(Arc::new(func));
         self
     }
 }

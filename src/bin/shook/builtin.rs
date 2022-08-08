@@ -1,7 +1,11 @@
-use std::time::SystemTime;
+use std::{collections::BTreeSet, time::SystemTime};
 
 use anyhow::Context;
-use shook::{prelude::*, FormatTime};
+use shook::{
+    help::{Description, Registry},
+    prelude::*,
+    FormatTime,
+};
 use tokio::time::Instant;
 
 pub struct Builtin(Instant);
@@ -19,6 +23,9 @@ impl Builtin {
         let bot_uptime_cmd = cmd("!bot-uptime").help("retrieves the bot's current uptime");
         let time_cmd = cmd("!time").help("retrieves the stream's current time");
         let hello_cmd = cmd("!hello").help("gives a greeting");
+        let help_cmd = cmd("!help")
+            .help("looks up, or lists commands")
+            .usage("<command?>")?;
 
         Ok(Binding::create(Self(Instant::now()))
             .bind(theme_cmd, Self::theme)
@@ -26,8 +33,73 @@ impl Builtin {
             .bind(bot_uptime_cmd, Self::bot_uptime)
             .bind(time_cmd, Self::time)
             .bind(hello_cmd, Self::hello)
+            .bind(help_cmd, Self::help)
             .listen(Self::say_hello)
             .into_callable())
+    }
+
+    async fn help(self: Arc<Self>, msg: Message) -> impl Render {
+        return match msg.args().get("command") {
+            Some(cmd) if !cmd.starts_with('!') => {
+                anyhow::bail!("you must prefix commands with !")
+            }
+            Some(cmd) => {
+                let registry = msg.state().get::<Registry>().await;
+                match registry.find_command(cmd) {
+                    Some(desc) => Ok(Simple {
+                        twitch: format!(
+                            "{usage} | {desc}",
+                            usage = desc.usage(),
+                            desc = desc.description()
+                        ),
+                        discord: format!(
+                            "`{usage}` | {desc}",
+                            usage = desc.usage(),
+                            desc = desc.description()
+                        ),
+                    }
+                    .boxed()),
+                    None => anyhow::bail!("cannot find '{cmd}'"),
+                }
+            }
+            None => {
+                let registry = msg.state().get::<Registry>().await;
+                let f = format_help_twitch(
+                    &registry
+                        .get_all_descriptions()
+                        .flat_map(|d| d.command_names())
+                        .collect(),
+                );
+                Ok(Simple {
+                    twitch: f.clone(),
+                    discord: f,
+                }
+                .boxed())
+            }
+        };
+
+        fn format_help_twitch(desc: &BTreeSet<&str>) -> Vec<Response> {
+            const MAX: usize = 3;
+            let (mut left, right) = desc.into_iter().enumerate().fold(
+                (Response::builder(), String::new()),
+                |(mut left, mut right), (i, c)| {
+                    if i != 0 && i % MAX == 0 {
+                        left = left.say(std::mem::take(&mut right))
+                    }
+                    if !right.is_empty() {
+                        right.push(' ')
+                    }
+                    right.push_str(c);
+                    (left, right)
+                },
+            );
+
+            if !right.trim().is_empty() {
+                left = left.say(right)
+            }
+
+            left.finish()
+        }
     }
 
     async fn hello(self: Arc<Self>, msg: Message) -> impl Render {

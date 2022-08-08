@@ -3,3 +3,4 @@
 *.json
 *.yml
 default_help.*
+!default_help.yml

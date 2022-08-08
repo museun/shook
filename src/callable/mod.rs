@@ -24,6 +24,10 @@ where
 {
     type Out: Future + Send;
     fn call(&self, msg: Message) -> Self::Out;
+
+    fn all_commands(&self) -> Vec<&Command> {
+        vec![]
+    }
     fn usage(&self) -> Option<&str> {
         None
     }
@@ -41,6 +45,21 @@ where
     fn call(&self, msg: Message) -> Self::Out {
         (**self).call(msg)
     }
+
+    #[inline]
+    fn all_commands(&self) -> Vec<&Command> {
+        (**self).all_commands()
+    }
+
+    #[inline]
+    fn usage(&self) -> Option<&str> {
+        (**self).usage()
+    }
+
+    #[inline]
+    fn description(&self) -> Option<&str> {
+        (**self).description()
+    }
 }
 
 impl<F, Fut> CallableFn for F
@@ -57,7 +76,7 @@ where
     }
 }
 
-impl<F> CallableFn for (Command, F)
+impl<F> CallableFn for (Arc<Command>, F)
 where
     F: CallableFn,
 {
@@ -69,13 +88,18 @@ where
     }
 
     fn usage(&self) -> Option<&str> {
-        let (Command { command, .. }, ..) = &self;
-        Some(command)
+        let cmd = &*self.0;
+        Some(&cmd.command)
     }
 
     fn description(&self) -> Option<&str> {
-        let (Command { description, .. }, ..) = &self;
-        description.as_deref()
+        let cmd = &*self.0;
+        cmd.description.as_deref()
+    }
+
+    // TODO this should be a different return type
+    fn all_commands(&self) -> Vec<&Command> {
+        vec![&self.0]
     }
 }
 

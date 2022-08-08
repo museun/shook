@@ -1,50 +1,60 @@
 use std::{future::Future, sync::Arc};
 
+use super::{Command, Dispatch, IntoCallable, SharedCallable};
 use crate::{prelude::Message, render::Render};
 
-use super::{Command, Dispatch, IntoCallable, SharedCallable};
-
-#[derive(Default)]
-pub struct Group(Vec<SharedCallable>);
+pub struct Group {
+    commands: Arc<Vec<SharedCallable>>,
+}
 
 impl IntoCallable for Group {
     fn into_callable(self) -> SharedCallable {
-        let callables = Arc::new(self.0);
-        let func = move |msg| {
-            let callables = Arc::clone(&callables);
-            async move { Dispatch::new(&callables).into_render(&msg).await.boxed() }
-        };
-        Arc::new(func)
+        Arc::new({
+            move |msg| {
+                let commands = Arc::clone(&self.commands);
+                Box::pin(async move { Dispatch::new(&commands).into_render(&msg).await.boxed() })
+            }
+        })
     }
 }
 
 impl Group {
+    pub fn new() -> Self {
+        Self {
+            commands: Arc::new(vec![]),
+        }
+    }
+
     pub fn bind<F, Fut>(mut self, cmd: Command, func: F) -> Self
     where
-        F: Fn(Message) -> Fut + Clone + Send + Sync + 'static,
+        F: Fn(Message) -> Fut + Copy + Send + Sync + 'static,
         Fut: Future + Send,
         Fut::Output: Render + Send + 'static,
     {
-        let func = Arc::new({
-            let cmd = cmd.clone();
-            move |msg: Message| super::wrap(msg, cmd.clone(), func.clone())
-        });
+        let cmd = Arc::new(cmd);
+        let func = {
+            (cmd.clone(), move |msg: Message| {
+                super::wrap(msg, cmd.clone(), func)
+            })
+        };
 
-        self.0.push(Arc::new((cmd, func)));
+        Arc::get_mut(&mut self.commands)
+            .expect("single ownership at this point")
+            .push(Arc::new(func));
         self
     }
 
     pub fn listen<F, Fut>(mut self, func: F) -> Self
     where
-        F: Fn(Message) -> Fut + Clone + Send + Sync + 'static,
+        F: Fn(Message) -> Fut + Copy + Send + Sync + 'static,
         Fut: Future + Send,
         Fut::Output: Render + Send + 'static,
     {
-        let func = Arc::new(move |msg| {
-            let func = func.clone();
-            async move { func(msg).await.boxed() }
-        });
-        self.0.push(func);
+        let func = move |msg| async move { func(msg).await.boxed() };
+
+        Arc::get_mut(&mut self.commands)
+            .expect("single ownership at this point")
+            .push(Arc::new(func));
         self
     }
 }

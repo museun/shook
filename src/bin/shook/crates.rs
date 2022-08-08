@@ -108,7 +108,7 @@ pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
         .alias("!lookup")
         .help("look up a Rust crate")
         .usage("<name>")?;
-    Ok(Group::default().bind(cmd, lookup).into_callable())
+    Ok(Group::new().bind(cmd, lookup).into_callable())
 }
 
 async fn lookup(msg: Message) -> impl Render {

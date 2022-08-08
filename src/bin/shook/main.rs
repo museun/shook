@@ -21,12 +21,18 @@ async fn load_config(state: &mut State) -> anyhow::Result<()> {
     Ok(())
 }
 
-// async fn load_help(state: &mut State) -> anyhow::Result<()> {
-//     // TODO make the default if this doesn't exist
-//     let registry = Registry::load_from_file::<Yaml>(&"default_help").await?;
-//     state.insert(registry);
-//     Ok(())
-// }
+async fn load_help(state: &mut State) -> anyhow::Result<()> {
+    // TODO make the default if this doesn't exist
+    let registry = Registry::load_from_file::<Yaml>(&"default_help").await?;
+    state.insert(registry);
+    Ok(())
+}
+
+#[tokio::test]
+async fn foo() {
+
+    // builtin::bind(GlobalState::default()).await.unwrap();
+}
 
 async fn init_twitch(state: &mut State) -> anyhow::Result<()> {
     use shook::{config, helix::*};
@@ -66,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
     load_config(&mut state).await?;
 
     log::info!("loading help");
-    // load_help(&mut state).await?;
+    load_help(&mut state).await?;
 
     log::info!("getting twitch clients");
     init_twitch(&mut state).await?;

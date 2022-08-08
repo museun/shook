@@ -1,4 +1,4 @@
-use std::future::Future;
+use std::{future::Future, sync::Arc};
 
 use crate::{
     args::{Arguments, Match},
@@ -10,7 +10,7 @@ use super::Command;
 
 pub async fn wrap<F>(
     mut msg: Message,
-    cmd: Command,
+    cmd: Arc<Command>,
     func: impl Fn(Message) -> F + Send + Sync,
 ) -> BoxedRender
 where

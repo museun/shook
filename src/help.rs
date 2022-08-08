@@ -30,65 +30,21 @@ impl Registry {
             .get(cmd)
             .map(|c| c.parse_command())
     }
-}
 
-#[tokio::test]
-async fn foo() {
-    use crate::persist::{PersistExt, Yaml};
-    use crate::prelude::cmd;
+    pub fn get_all_descriptions(&self) -> impl Iterator<Item = &Descriptions> {
+        self.map.values()
+    }
 
-    let reg = {
-        let mut reg = Registry::default();
-        reg.map.insert(String::from("builtin"), {
-            let theme_cmd = cmd("!theme").help("tries to look up the current vscode theme");
-            let uptime_cmd = cmd("!uptime")
-                .help("retrieves a stream's current uptime")
-                .usage("<channel?>")
-                .unwrap();
-            let bot_uptime_cmd = cmd("!bot-uptime").help("retrieves the bot's current uptime");
-            let time_cmd = cmd("!time").help("retrieves the stream's current time");
-            let hello_cmd = cmd("!hello").alias("!greet").help("gives a greeting");
+    pub fn find_command(&self, cmd: &str) -> Option<&Description> {
+        self.map.values().find_map(|desc| desc.get(cmd))
+    }
 
-            [theme_cmd, uptime_cmd, bot_uptime_cmd, time_cmd, hello_cmd]
-                .into_iter()
-                .fold(Descriptions::default(), |desc, cmd| desc.with(cmd.into()))
-        });
-
-        reg.map.insert(String::from("crates"), {
-            Descriptions::default().with(
-                cmd("!crate")
-                    .alias("!crates")
-                    .alias("!lookup")
-                    .help("look up a Rust crate")
-                    .usage("<name>")
-                    .unwrap()
-                    .into(),
-            )
-        });
-
-        reg.map.insert(String::from("spotify"), {
-            Descriptions::default()
-                .with(
-                    cmd("!song")
-                        .alias("!current")
-                        .help("gets the currently playing song from spotify")
-                        .into(),
-                )
-                .with(
-                    cmd("!previous")
-                        .help("gets the previously played song from spotify")
-                        .into(),
-                )
-        });
-
-        reg
-    };
-
-    reg.save_to_file::<Json>(&"default_help").await.unwrap();
-    reg.save_to_file::<Toml>(&"default_help").await.unwrap();
-    reg.save_to_file::<Yaml>(&"default_help").await.unwrap();
-    reg.save_to_file::<Lexpr>(&"default_help").await.unwrap();
-    reg.save_to_file::<Ron>(&"default_help").await.unwrap();
+    pub fn add(&mut self, namespace: &str, desc: impl Into<Description>) {
+        self.map
+            .entry(namespace.to_string())
+            .or_default()
+            .add(desc.into());
+    }
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -112,11 +68,7 @@ impl Descriptions {
     }
 
     pub fn command_names(&self) -> impl Iterator<Item = &str> {
-        self.descriptions.iter().flat_map(|c| {
-            [&*c.command]
-                .into_iter()
-                .chain(c.aliases.iter().map(|c| &**c))
-        })
+        self.descriptions.iter().flat_map(|c| c.commands())
     }
 
     pub fn description_for(&self, name: &str) -> Option<&str> {
@@ -131,10 +83,10 @@ impl Descriptions {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Description {
     pub command: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub usage: Option<String>,
     pub description: String,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub aliases: Vec<String>,
 }
 
@@ -150,11 +102,14 @@ impl Description {
         Ok(cmd)
     }
 
-    pub fn matches_command(&self, input: &str) -> bool {
+    pub fn commands(&self) -> impl Iterator<Item = &str> {
         [&*self.command]
             .into_iter()
             .chain(self.aliases.iter().map(|s| &**s))
-            .any(|c| c == input)
+    }
+
+    pub fn matches_command(&self, input: &str) -> bool {
+        self.commands().any(|c| c == input)
     }
 
     pub fn description(&self) -> &str {
@@ -190,4 +145,70 @@ impl From<Command> for Description {
     fn from(cmd: Command) -> Self {
         (&cmd).into()
     }
+}
+
+#[tokio::test]
+async fn foo() {
+    use crate::persist::{PersistExt, Yaml};
+    use crate::prelude::cmd;
+
+    let reg = {
+        let mut reg = Registry::default();
+        reg.map.insert(String::from("builtin"), {
+            let theme_cmd = cmd("!theme").help("tries to look up the current vscode theme");
+            let uptime_cmd = cmd("!uptime")
+                .help("retrieves a stream's current uptime")
+                .usage("<channel?>")
+                .unwrap();
+            let bot_uptime_cmd = cmd("!bot-uptime").help("retrieves the bot's current uptime");
+            let time_cmd = cmd("!time").help("retrieves the stream's current time");
+            let hello_cmd = cmd("!hello").alias("!greet").help("gives a greeting");
+            let help_cmd = cmd("!help")
+                .help("looks up, or lists commands")
+                .usage("<command?>")
+                .unwrap();
+
+            [
+                theme_cmd,
+                uptime_cmd,
+                bot_uptime_cmd,
+                time_cmd,
+                hello_cmd,
+                help_cmd,
+            ]
+            .into_iter()
+            .fold(Descriptions::default(), |desc, cmd| desc.with(cmd.into()))
+        });
+
+        reg.map.insert(String::from("crates"), {
+            Descriptions::default().with(
+                cmd("!crate")
+                    .alias("!crates")
+                    .alias("!lookup")
+                    .help("look up a Rust crate")
+                    .usage("<name>")
+                    .unwrap()
+                    .into(),
+            )
+        });
+
+        reg.map.insert(String::from("spotify"), {
+            Descriptions::default()
+                .with(
+                    cmd("!song")
+                        .alias("!current")
+                        .help("gets the currently playing song from spotify")
+                        .into(),
+                )
+                .with(
+                    cmd("!previous")
+                        .help("gets the previously played song from spotify")
+                        .into(),
+                )
+        });
+
+        reg
+    };
+
+    reg.save_to_file::<Yaml>(&"default_help").await.unwrap();
 }
