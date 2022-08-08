@@ -1,9 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use crate::{
-    persist::{Json, Lexpr, Ron, Toml},
-    prelude::Command,
-};
+use crate::prelude::Command;
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Registry {
@@ -16,13 +13,15 @@ impl Registry {
         self.map.get(namespace)
     }
 
-    pub fn get_from_id(&self, id: &str) -> Option<anyhow::Result<Command>> {
-        let (head, tail) = id.split_once("::")?;
+    pub fn fetch(&self, id: &str) -> Command {
+        let (head, tail) = id.split_once("::").expect("invalid command id");
         let tail = tail
             .starts_with('!')
             .then_some(Cow::from(tail))
             .unwrap_or_else(|| Cow::from(format!("!{tail}")));
         self.get_command(head, &tail)
+            .unwrap_or_else(|| panic!("'{id}' was invalid"))
+            .unwrap()
     }
 
     pub fn get_command(&self, namespace: &str, cmd: &str) -> Option<anyhow::Result<Command>> {
@@ -145,70 +144,4 @@ impl From<Command> for Description {
     fn from(cmd: Command) -> Self {
         (&cmd).into()
     }
-}
-
-#[tokio::test]
-async fn foo() {
-    use crate::persist::{PersistExt, Yaml};
-    use crate::prelude::cmd;
-
-    let reg = {
-        let mut reg = Registry::default();
-        reg.map.insert(String::from("builtin"), {
-            let theme_cmd = cmd("!theme").help("tries to look up the current vscode theme");
-            let uptime_cmd = cmd("!uptime")
-                .help("retrieves a stream's current uptime")
-                .usage("<channel?>")
-                .unwrap();
-            let bot_uptime_cmd = cmd("!bot-uptime").help("retrieves the bot's current uptime");
-            let time_cmd = cmd("!time").help("retrieves the stream's current time");
-            let hello_cmd = cmd("!hello").alias("!greet").help("gives a greeting");
-            let help_cmd = cmd("!help")
-                .help("looks up, or lists commands")
-                .usage("<command?>")
-                .unwrap();
-
-            [
-                theme_cmd,
-                uptime_cmd,
-                bot_uptime_cmd,
-                time_cmd,
-                hello_cmd,
-                help_cmd,
-            ]
-            .into_iter()
-            .fold(Descriptions::default(), |desc, cmd| desc.with(cmd.into()))
-        });
-
-        reg.map.insert(String::from("crates"), {
-            Descriptions::default().with(
-                cmd("!crate")
-                    .alias("!crates")
-                    .alias("!lookup")
-                    .help("look up a Rust crate")
-                    .usage("<name>")
-                    .unwrap()
-                    .into(),
-            )
-        });
-
-        reg.map.insert(String::from("spotify"), {
-            Descriptions::default()
-                .with(
-                    cmd("!song")
-                        .alias("!current")
-                        .help("gets the currently playing song from spotify")
-                        .into(),
-                )
-                .with(
-                    cmd("!previous")
-                        .help("gets the previously played song from spotify")
-                        .into(),
-                )
-        });
-
-        reg
-    };
-
-    reg.save_to_file::<Yaml>(&"default_help").await.unwrap();
 }

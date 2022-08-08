@@ -1,27 +1,35 @@
 builtin:
 - command: '!theme'
   description: tries to look up the current vscode theme
+
 - command: '!uptime'
   usage: <channel?>
   description: retrieves a stream's current uptime
+
 - command: '!bot-uptime'
   description: retrieves the bot's current uptime
+
 - command: '!time'
   description: retrieves the stream's current time
+
 - command: '!hello'
   description: gives a greeting
   aliases:
   - '!greet'
+
 - command: '!help'
   usage: <command?>
   description: looks up, or lists commands
+
 spotify:
 - command: '!song'
   description: gets the currently playing song from spotify
   aliases:
   - '!current'
+
 - command: '!previous'
   description: gets the previously played song from spotify
+
 crates:
 - command: '!crate'
   usage: <name>

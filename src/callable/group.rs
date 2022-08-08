@@ -1,31 +1,47 @@
 use std::{future::Future, sync::Arc};
 
 use super::{Command, Dispatch, IntoCallable, SharedCallable};
-use crate::{prelude::Message, render::Render};
+use crate::{
+    help::Registry,
+    prelude::{Message, State},
+    render::Render,
+};
 
-pub struct Group {
-    commands: Arc<Vec<SharedCallable>>,
+pub struct Group<'a> {
+    callables: Vec<SharedCallable>,
+    state: &'a mut State,
 }
 
-impl IntoCallable for Group {
+impl<'a> IntoCallable for Group<'a> {
     fn into_callable(self) -> SharedCallable {
-        Arc::new({
-            move |msg| {
-                let commands = Arc::clone(&self.commands);
-                Box::pin(async move { Dispatch::new(&commands).into_render(&msg).await.boxed() })
-            }
-        })
+        let callables = Arc::new(self.callables);
+        let func = move |msg| {
+            let commands = Arc::clone(&callables);
+            Box::pin(async move { Dispatch::new(&commands).into_render(&msg).await.boxed() })
+        };
+        Arc::new(func)
     }
 }
 
-impl Group {
-    pub fn new() -> Self {
+impl<'a> Group<'a> {
+    pub fn new(state: &'a mut State) -> Self {
         Self {
-            commands: Arc::new(vec![]),
+            callables: vec![],
+            state,
         }
     }
 
-    pub fn bind<F, Fut>(mut self, cmd: Command, func: F) -> Self
+    pub fn bind<F, Fut>(self, id: &'static str, func: F) -> Self
+    where
+        F: Fn(Message) -> Fut + Copy + Send + Sync + 'static,
+        Fut: Future + Send,
+        Fut::Output: Render + Send + 'static,
+    {
+        let cmd = self.state.get::<Registry>().unwrap().fetch(id);
+        self.bind_cmd(cmd, func)
+    }
+
+    pub fn bind_cmd<F, Fut>(mut self, cmd: Command, func: F) -> Self
     where
         F: Fn(Message) -> Fut + Copy + Send + Sync + 'static,
         Fut: Future + Send,
@@ -38,9 +54,7 @@ impl Group {
             })
         };
 
-        Arc::get_mut(&mut self.commands)
-            .expect("single ownership at this point")
-            .push(Arc::new(func));
+        self.callables.push(Arc::new(func));
         self
     }
 
@@ -51,10 +65,7 @@ impl Group {
         Fut::Output: Render + Send + 'static,
     {
         let func = move |msg| async move { func(msg).await.boxed() };
-
-        Arc::get_mut(&mut self.commands)
-            .expect("single ownership at this point")
-            .push(Arc::new(func));
+        self.callables.push(Arc::new(func));
         self
     }
 }

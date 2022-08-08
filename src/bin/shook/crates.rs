@@ -101,14 +101,12 @@ impl CratesClient {
     }
 }
 
-pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-    state.insert(CratesClient::new()).await;
-    let cmd = cmd("!crate")
-        .alias("!crates")
-        .alias("!lookup")
-        .help("look up a Rust crate")
-        .usage("<name>")?;
-    Ok(Group::new().bind(cmd, lookup).into_callable())
+pub async fn bind(state: &mut State) -> anyhow::Result<SharedCallable> {
+    state.insert(CratesClient::new());
+
+    Ok(Group::new(state)
+        .bind("crates::crate", lookup)
+        .into_callable())
 }
 
 async fn lookup(msg: Message) -> impl Render {

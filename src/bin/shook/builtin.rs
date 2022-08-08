@@ -1,39 +1,24 @@
 use std::{collections::BTreeSet, time::SystemTime};
 
 use anyhow::Context;
-use shook::{
-    help::{Description, Registry},
-    prelude::*,
-    FormatTime,
-};
+use shook::{help::Registry, prelude::*, FormatTime};
 use tokio::time::Instant;
 
 pub struct Builtin(Instant);
 
-pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
+pub async fn bind(state: &mut State) -> anyhow::Result<SharedCallable> {
     Builtin::bind(state).await
 }
 
 impl Builtin {
-    async fn bind(_: GlobalState) -> anyhow::Result<SharedCallable> {
-        let theme_cmd = cmd("!theme").help("tries to look up the current vscode theme");
-        let uptime_cmd = cmd("!uptime")
-            .help("retrieves a stream's current uptime")
-            .usage("<channel?>")?;
-        let bot_uptime_cmd = cmd("!bot-uptime").help("retrieves the bot's current uptime");
-        let time_cmd = cmd("!time").help("retrieves the stream's current time");
-        let hello_cmd = cmd("!hello").help("gives a greeting");
-        let help_cmd = cmd("!help")
-            .help("looks up, or lists commands")
-            .usage("<command?>")?;
-
-        Ok(Binding::create(Self(Instant::now()))
-            .bind(theme_cmd, Self::theme)
-            .bind(uptime_cmd, Self::uptime)
-            .bind(bot_uptime_cmd, Self::bot_uptime)
-            .bind(time_cmd, Self::time)
-            .bind(hello_cmd, Self::hello)
-            .bind(help_cmd, Self::help)
+    async fn bind(state: &mut State) -> anyhow::Result<SharedCallable> {
+        Ok(Binding::create(state, Self(Instant::now()))
+            .bind("builtin::theme", Self::theme)
+            .bind("builtin::uptime", Self::uptime)
+            .bind("builtin::bot-uptime", Self::bot_uptime)
+            .bind("builtin::time", Self::time)
+            .bind("builtin::hello", Self::hello)
+            .bind("builtin::help", Self::help)
             .listen(Self::say_hello)
             .into_callable())
     }
@@ -43,6 +28,8 @@ impl Builtin {
             Some(cmd) if !cmd.starts_with('!') => {
                 anyhow::bail!("you must prefix commands with !")
             }
+
+            // TODO list aliases
             Some(cmd) => {
                 let registry = msg.state().get::<Registry>().await;
                 match registry.find_command(cmd) {
@@ -79,7 +66,7 @@ impl Builtin {
         };
 
         fn format_help_twitch(desc: &BTreeSet<&str>) -> Vec<Response> {
-            const MAX: usize = 3;
+            const MAX: usize = 10;
             let (mut left, right) = desc.into_iter().enumerate().fold(
                 (Response::builder(), String::new()),
                 |(mut left, mut right), (i, c)| {
