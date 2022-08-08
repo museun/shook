@@ -3,47 +3,6 @@ use crate::{
     prelude::Message,
 };
 
-pub struct SimpleFormat {
-    twitch: Vec<String>,
-    discord: Vec<String>,
-}
-
-impl SimpleFormat {
-    pub fn new(twitch: impl ToString, discord: impl ToString) -> Self {
-        Self {
-            twitch: vec![twitch.to_string()],
-            discord: vec![discord.to_string()],
-        }
-    }
-
-    pub fn more(mut self, twitch: impl ToString, discord: impl ToString) -> Self {
-        self.twitch.push(twitch.to_string());
-        self.discord.push(discord.to_string());
-        self
-    }
-
-    pub fn twitch<T: ToString>(mut self, twitch: impl IntoIterator<Item = T>) -> Self {
-        self.twitch
-            .extend(twitch.into_iter().map(|c| c.to_string()));
-        self
-    }
-
-    pub fn discord<T: ToString>(mut self, discord: impl IntoIterator<Item = T>) -> Self {
-        self.discord
-            .extend(discord.into_iter().map(|c| c.to_string()));
-        self
-    }
-}
-
-impl Render for SimpleFormat {
-    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
-        match flavor {
-            RenderFlavor::Twitch => self.twitch.render(flavor),
-            RenderFlavor::Discord => self.discord.render(flavor),
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub enum Response {
     Say(String),
@@ -83,6 +42,12 @@ impl ResponseBuilder {
     }
     pub fn finish(self) -> Vec<Response> {
         self.0
+    }
+}
+
+impl Render for ResponseBuilder {
+    fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
+        self.0.render(flavor)
     }
 }
 

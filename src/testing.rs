@@ -1,11 +1,15 @@
-use std::{borrow::Cow, future::Future};
+use std::{borrow::Cow, future::Future, sync::Arc};
 
 use crate::{
+    callable::CallableFn,
     discord::Message as DiscordMessage,
+    help::Registry,
     message::MessageKind,
-    prelude::{GlobalState, Message, SharedCallable},
-    render::{RenderFlavor, Response},
+    persist::{PersistExt, Yaml},
+    prelude::{GlobalState, Message, SharedCallable, State},
+    render::{BoxedRender, Render, RenderFlavor, Response},
     twitch::{Message as TwitchMessage, Privmsg, Tags},
+    BoxedFuture,
 };
 
 #[async_trait::async_trait]
@@ -14,24 +18,31 @@ where
     Self: Sized + Send + Sync + 'static,
 {
     async fn mock(self) -> TestBinding;
-    async fn mock_with_state(self, state: GlobalState) -> TestBinding;
+    async fn mock_with_state(self, state: State) -> TestBinding;
 }
 
 #[async_trait::async_trait]
-impl<F, Fut> Mock for F
+impl<F, Fut, C> Mock for F
 where
     F: Fn(GlobalState) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = anyhow::Result<SharedCallable>> + Send,
+    Fut: Future<Output = anyhow::Result<C>> + Send,
+    C: CallableFn<Out = BoxedFuture<'static, BoxedRender>>,
 {
     async fn mock(self) -> TestBinding {
         Self::mock_with_state(self, <_>::default()).await
     }
 
-    async fn mock_with_state(self, state: GlobalState) -> TestBinding {
+    async fn mock_with_state(self, mut state: State) -> TestBinding {
+        let registry = Registry::load_from_file::<Yaml>(&"default_help")
+            .await
+            .unwrap();
+        state.insert(registry);
+
+        let state = GlobalState::new(state);
         let callable = (self)(state.clone()).await.expect("valid binding");
 
         TestBinding {
-            callable,
+            callable: Arc::new(callable),
             responses: Vec::new(),
             channel: Cow::from("#test_chanenl"),
             sender: Cow::from("test_user"),
@@ -114,7 +125,7 @@ impl TestBinding {
     pub async fn send_discord_message(&mut self, data: &str) {
         let msg = Message::new(
             DiscordMessage::mock(&self.sender, 42, data),
-            MessageKind::Twitch,
+            MessageKind::Discord,
             self.state.clone(),
         );
         self.send_message(msg).await

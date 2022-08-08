@@ -9,7 +9,7 @@ use crate::{
 
 pub struct Group<'a> {
     callables: Vec<SharedCallable>,
-    state: &'a mut State,
+    registry: &'a Registry,
 }
 
 impl<'a> IntoCallable for Group<'a> {
@@ -24,10 +24,10 @@ impl<'a> IntoCallable for Group<'a> {
 }
 
 impl<'a> Group<'a> {
-    pub fn new(state: &'a mut State) -> Self {
+    pub fn new(registry: &'a Registry) -> Self {
         Self {
             callables: vec![],
-            state,
+            registry,
         }
     }
 
@@ -37,7 +37,7 @@ impl<'a> Group<'a> {
         Fut: Future + Send,
         Fut::Output: Render + Send + 'static,
     {
-        let cmd = self.state.get::<Registry>().unwrap().fetch(id);
+        let cmd = self.registry.fetch(id);
         self.bind_cmd(cmd, func)
     }
 

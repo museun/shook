@@ -87,7 +87,7 @@ impl SpotifyClient {
     }
 }
 
-pub async fn bind(state: &mut State) -> anyhow::Result<SharedCallable> {
+pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
     Spotify::bind(state).await
 }
 
@@ -99,22 +99,23 @@ struct Spotify {
 impl Spotify {
     const HISTORY_LIMIT: usize = 5;
 
-    async fn bind(state: &mut State) -> anyhow::Result<SharedCallable> {
+    async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
         let spotify = {
-            let config: &shook::config::Spotify = state.get().unwrap();
+            let config: &shook::config::Spotify = &*state.get().await;
             SpotifyClient::new(&config.client_id, &config.client_secret).await?
         };
 
         let queue = Arc::new(Mutex::new(Queue::with_capacity(Self::HISTORY_LIMIT)));
 
-        let streamer = state.get::<Streamer>().unwrap().clone();
+        let streamer = state.get::<Streamer>().await.clone();
         let _ = tokio::task::spawn({
             let queue = Arc::clone(&queue);
-            let twitch = state.get::<shook::helix::HelixClient>().unwrap().clone();
+            let twitch = state.get::<shook::helix::HelixClient>().await.clone();
             Self::update_loop(queue, twitch, spotify.clone(), streamer)
         });
 
-        Ok(Binding::create(state, Self { spotify, queue })
+        let registry = state.get().await;
+        Ok(Binding::create(&registry, Self { spotify, queue })
             .bind("spotify::song", Self::current)
             .bind("spotify::previous", Self::previous)
             // .bind(

@@ -19,8 +19,11 @@ pub struct Handler<const N: usize> {
 #[async_trait::async_trait]
 impl<const N: usize> EventHandler for Handler<N> {
     async fn message(&self, ctx: Context, msg: DiscordMessage) {
-        let id = msg.channel_id;
+        if msg.author.bot {
+            return;
+        }
 
+        let id = msg.channel_id;
         let sm = ShookMessage::new(
             super::Message::from_serenity(msg),
             MessageKind::Discord,

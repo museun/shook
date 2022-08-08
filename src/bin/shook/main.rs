@@ -6,9 +6,9 @@ use shook::{
     twitch,
 };
 
+mod another_viewer;
 mod builtin;
 mod crates;
-
 mod spotify;
 
 async fn load_config(state: &mut State) -> anyhow::Result<()> {
@@ -70,14 +70,15 @@ async fn main() -> anyhow::Result<()> {
     log::info!("getting twitch clients");
     init_twitch(&mut state).await?;
 
+    let state = GlobalState::new(state);
     log::trace!("binding callables");
     let callables = [
-        builtin::bind(&mut state).await?, //
-        crates::bind(&mut state).await?,
-        spotify::bind(&mut state).await?,
+        builtin::bind(state.clone()).await?, //
+        crates::bind(state.clone()).await?,
+        spotify::bind(state.clone()).await?,
+        another_viewer::bind(state.clone()).await?,
     ];
 
-    let state = GlobalState::new(state);
     log::debug!("starting twitch bot");
     let twitch = tokio::task::spawn({
         let state = state.clone();

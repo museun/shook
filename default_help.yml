@@ -2,6 +2,9 @@ builtin:
 - command: '!theme'
   description: tries to look up the current vscode theme
 
+- command: '!font'
+  description: tries to look up the current vscode fonts
+
 - command: '!uptime'
   usage: <channel?>
   description: retrieves a stream's current uptime
@@ -23,12 +26,13 @@ builtin:
 
 spotify:
 - command: '!song'
-  description: gets the currently playing song from spotify
+  description: gets the currently playing song
   aliases:
   - '!current'
+  - '!playing'
 
 - command: '!previous'
-  description: gets the previously played song from spotify
+  description: gets the previously played song
 
 crates:
 - command: '!crate'
@@ -37,3 +41,8 @@ crates:
   aliases:
   - '!crates'
   - '!lookup'
+
+another_viewer:
+- command: '!speak'
+  usage: "<context?>"
+  description: "tries to force the bot to speak"

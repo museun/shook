@@ -45,8 +45,7 @@ pub mod prelude {
     pub use crate::callable::{self, Binding, Command, Group, IntoCallable, SharedCallable};
     pub use crate::message::Message;
     pub use crate::render::{
-        Bold, Code, Hidden, Italics, Render, RenderFlavor, Response, Simple, SimpleFormat,
-        Strikeout, Underline,
+        Bold, Code, Hidden, Italics, Render, RenderFlavor, Response, Simple, Strikeout, Underline,
     };
     pub use crate::state::{GlobalState, State};
 }

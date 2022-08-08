@@ -7,7 +7,7 @@ use std::{
 use tokio::sync::{RwLock, RwLockMappedWriteGuard, RwLockReadGuard, RwLockWriteGuard};
 
 #[derive(Default, Clone)]
-pub struct GlobalState(Arc<RwLock<State>>);
+pub struct GlobalState(pub(crate) Arc<RwLock<State>>);
 
 impl GlobalState {
     pub fn new(state: State) -> Self {

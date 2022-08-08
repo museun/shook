@@ -1,16 +1,12 @@
 use std::{future::Future, sync::Arc};
 
 use super::{Command, Dispatch, IntoCallable, SharedCallable};
-use crate::{
-    help::Registry,
-    prelude::{Message, State},
-    render::Render,
-};
+use crate::{help::Registry, prelude::Message, render::Render};
 
 pub struct Binding<'a, T> {
     this: Arc<T>,
     callables: Vec<SharedCallable>,
-    state: &'a mut State,
+    registry: &'a Registry,
 }
 
 impl<'a, T> IntoCallable for Binding<'a, T>
@@ -31,12 +27,11 @@ impl<'a, T> Binding<'a, T>
 where
     T: Send + Sync + 'static,
 {
-    // TODO record descriptions
-    pub fn create(state: &'a mut State, this: T) -> Self {
+    pub fn create(registry: &'a Registry, this: T) -> Self {
         Self {
             this: Arc::new(this),
             callables: Vec::new(),
-            state,
+            registry,
         }
     }
 
@@ -46,8 +41,7 @@ where
         Fut: Future + Send,
         Fut::Output: Render + Send + 'static,
     {
-        let reg: &Registry = self.state.get().expect("registry must exist");
-        let cmd = reg.fetch(id);
+        let cmd = self.registry.fetch(id);
         self.bind_cmd(cmd, func)
     }
 

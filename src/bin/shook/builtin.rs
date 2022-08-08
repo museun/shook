@@ -6,14 +6,16 @@ use tokio::time::Instant;
 
 pub struct Builtin(Instant);
 
-pub async fn bind(state: &mut State) -> anyhow::Result<SharedCallable> {
+pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
     Builtin::bind(state).await
 }
 
 impl Builtin {
-    async fn bind(state: &mut State) -> anyhow::Result<SharedCallable> {
-        Ok(Binding::create(state, Self(Instant::now()))
+    async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
+        let registry = state.get().await;
+        Ok(Binding::create(&registry, Self(Instant::now()))
             .bind("builtin::theme", Self::theme)
+            .bind("builtin::font", Self::font)
             .bind("builtin::uptime", Self::uptime)
             .bind("builtin::bot-uptime", Self::bot_uptime)
             .bind("builtin::time", Self::time)
@@ -150,6 +152,15 @@ impl Builtin {
         Ok(Simple {
             twitch: format!("'{variant}' from {url}"),
             discord: format!("`{variant}` from <{url}>"),
+        })
+    }
+
+    async fn font(self: Arc<Self>, _: Message) -> impl Render {
+        let fonts = what_theme::get_current_fonts()?;
+        let (editor, terminal) = (fonts.editor(), fonts.terminal());
+        Ok(Simple {
+            twitch: format!("terminal is using: '{editor}' and editor is using '{terminal}'"),
+            discord: format!("terminal is using: `{editor}` and editor is using `{terminal}`"),
         })
     }
 }

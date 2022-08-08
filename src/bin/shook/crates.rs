@@ -1,4 +1,4 @@
-use shook::prelude::*;
+use shook::{help::Registry, prelude::*};
 
 // TODO redo this
 enum Match {
@@ -101,10 +101,11 @@ impl CratesClient {
     }
 }
 
-pub async fn bind(state: &mut State) -> anyhow::Result<SharedCallable> {
-    state.insert(CratesClient::new());
+pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
+    state.insert(CratesClient::new()).await;
+    let registry = state.get().await;
 
-    Ok(Group::new(state)
+    Ok(Group::new(&registry)
         .bind("crates::crate", lookup)
         .into_callable())
 }
