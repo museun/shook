@@ -51,7 +51,7 @@ impl<const N: usize> Bot<N> {
                     format!("PRIVMSG {channel} :{msg}\r\n")
                 }
                 Response::Reply(msg) => {
-                    format!("PRIVMSG {channel} :{sender} {msg}\r\n")
+                    format!("PRIVMSG {channel} :{sender}: {msg}\r\n")
                 }
                 Response::Problem(msg) => {
                     format!("PRIVMSG {channel} :a problem occurred: {msg}\r\n")

@@ -9,10 +9,10 @@ mod format;
 pub use format::PersistFormat;
 
 mod json;
-pub use json::Json;
+pub use self::json::Json;
 
 mod yaml;
-pub use yaml::Yaml;
+pub use self::yaml::Yaml;
 
 mod toml;
 pub use self::toml::Toml;

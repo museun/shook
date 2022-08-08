@@ -10,6 +10,7 @@ mod another_viewer;
 mod builtin;
 mod crates;
 mod spotify;
+mod user_defined;
 
 fn load_config(state: &mut State) -> anyhow::Result<()> {
     use shook::config::*;
@@ -17,6 +18,7 @@ fn load_config(state: &mut State) -> anyhow::Result<()> {
     state.insert(Twitch::load_from_env()?);
     state.insert(Spotify::load_from_env()?);
     state.insert(Discord::load_from_env()?);
+    state.insert(AnotherViewer::load_from_env()?);
     log::info!("succesfully loaded env");
     Ok(())
 }
@@ -58,7 +60,12 @@ async fn init_twitch(state: &mut State) -> anyhow::Result<()> {
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     simple_env_load::load_env_from([".dev.env"]);
-    alto_logger::init_alt_term_logger()?;
+    alto_logger::TermLogger::new(
+        alto_logger::Options::default()
+            .with_time(alto_logger::TimeConfig::relative_now())
+            .with_style(alto_logger::StyleConfig::SingleLine),
+    )?
+    .init()?;
 
     let mut state = State::default();
     log::info!("loading configuration");
@@ -77,6 +84,7 @@ async fn main() -> anyhow::Result<()> {
         crates::bind(state.clone()).await?,
         spotify::bind(state.clone()).await?,
         another_viewer::bind(state.clone()).await?,
+        user_defined::bind(state.clone()).await?,
     ];
 
     log::debug!("starting twitch bot");

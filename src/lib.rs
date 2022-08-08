@@ -2,27 +2,21 @@ use std::{future::Future, pin::Pin};
 
 pub mod args;
 pub mod callable;
-
-mod state;
-
+pub mod config;
 pub mod discord;
+pub mod helix;
+pub mod help;
 pub mod message;
+pub mod persist;
+pub mod queue;
 pub mod render;
 pub mod twitch;
 
 mod format;
 pub use format::{FormatTime, IterExt};
 
-pub mod help;
-pub mod persist;
-
-pub mod helix;
-
-pub mod config;
-
 mod serde;
-
-pub mod queue;
+mod state;
 
 // #[cfg(test)]
 pub mod testing;
@@ -38,11 +32,8 @@ pub mod prelude {
     #[derive(Clone, Debug)]
     pub struct Streamer(pub String);
 
-    pub fn cmd(cmd: &str) -> Command {
-        Command::new(cmd)
-    }
-
     pub use crate::callable::{self, Binding, Command, Group, IntoCallable, SharedCallable};
+    pub use crate::help::Registry;
     pub use crate::message::Message;
     pub use crate::render::{
         Bold, Code, Hidden, Italics, Render, RenderFlavor, Response, Simple, Strikeout, Underline,

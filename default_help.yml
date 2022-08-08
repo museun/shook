@@ -46,3 +46,23 @@ another_viewer:
 - command: '!speak'
   usage: "<context?>"
   description: "tries to force the bot to speak"
+
+user_defined:
+- command: '!add'
+  usage: "<name> <body..>"
+  description: "adds a new command"
+
+- command: '!update'
+  usage: "<name> <body..>"
+  description: "updates an existing command"
+
+- command: "!remove"
+  usage: "<name>"
+  description: "removes a command"
+
+- command: "!alias"
+  usage: "<from> <to>"
+  description: "aliases a command"
+
+- command: "!commands"
+  description: "lists all user-defined commands"

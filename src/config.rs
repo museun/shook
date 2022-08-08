@@ -30,7 +30,7 @@ impl<T> std::ops::Deref for Secret<T> {
 }
 
 type Assign<T> = fn(&mut T, String);
-fn load_from_env<T: Default>(keys: &[(&str, Assign<T>)]) -> anyhow::Result<T> {
+fn load_from_env<T: Default + std::fmt::Debug>(keys: &[(&str, Assign<T>)]) -> anyhow::Result<T> {
     let get = |key| {
         log::trace!("looking up {key}");
         let res = std::env::var(key);
@@ -39,10 +39,15 @@ fn load_from_env<T: Default>(keys: &[(&str, Assign<T>)]) -> anyhow::Result<T> {
 
     log::trace!("loading env vars for: {}", std::any::type_name::<T>());
 
-    keys.iter().try_fold(T::default(), |mut this, (key, func)| {
+    let this = keys.iter().try_fold(T::default(), |mut this, (key, func)| {
         func(&mut this, get(key)?);
         Ok(this)
-    })
+    });
+
+    if let Ok(this) = &this {
+        log::debug!("created: {:?}", this);
+    }
+    this
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -106,6 +111,23 @@ impl Spotify {
             ("SHAKEN_SPOTIFY_CLIENT_ID", |t, v| t.client_id = v),
             ("SHAKEN_SPOTIFY_CLIENT_SECRET", |t, v| {
                 t.client_secret = Secret(v)
+            }),
+        ])
+    }
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct AnotherViewer {
+    pub remote: String,
+    pub bearer_token: Secret<String>,
+}
+
+impl AnotherViewer {
+    pub fn load_from_env() -> anyhow::Result<Self> {
+        load_from_env(&[
+            ("SHAKEN_BRAIN_REMOTE_URL", |t, v| t.remote = v),
+            ("SHAKEN_BRAIN_GENERATE_TOKEN", |t, v| {
+                t.bearer_token = Secret(v)
             }),
         ])
     }

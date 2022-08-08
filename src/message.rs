@@ -113,6 +113,58 @@ impl Message {
         self.inner.as_any().downcast_ref()
     }
 
+    pub fn require_moderator(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.is_from_moderator(),
+            "that requires you to be a moderator"
+        );
+        Ok(())
+    }
+
+    pub fn require_broadcaster(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.is_from_broadcaster(),
+            "that requires you to be the broadcaster"
+        );
+        Ok(())
+    }
+
+    pub fn require_elevation(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.is_from_moderator() || self.is_from_broadcaster(),
+            "that requires you to be a moderator or the broadcaster"
+        );
+        Ok(())
+    }
+
+    pub fn is_from_broadcaster(&self) -> bool {
+        if matches!(self.kind, MessageKind::Discord) {
+            return false;
+        }
+
+        self.badge_iter()
+            .any(|(key, val)| key == "broadcaster" && val == "1")
+    }
+
+    pub fn is_from_moderator(&self) -> bool {
+        if matches!(self.kind, MessageKind::Discord) {
+            return false;
+        }
+
+        self.badge_iter()
+            .any(|(key, val)| key == "moderator" && val == "1")
+    }
+
+    fn badge_iter(&self) -> impl Iterator<Item = (&str, &str)> + '_ {
+        self.as_twitch()
+            .expect("pre-conditions met")
+            .tags()
+            .get("badges")
+            .into_iter()
+            .flat_map(|s| s.split(','))
+            .flat_map(|s| s.split_once('/'))
+    }
+
     pub async fn require_streaming(&self) -> anyhow::Result<()> {
         let channel = self.streamer_name().await;
         let client = self.state.get::<crate::helix::HelixClient>().await;

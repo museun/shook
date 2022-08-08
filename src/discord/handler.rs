@@ -19,7 +19,7 @@ pub struct Handler<const N: usize> {
 #[async_trait::async_trait]
 impl<const N: usize> EventHandler for Handler<N> {
     async fn message(&self, ctx: Context, msg: DiscordMessage) {
-        if msg.author.bot {
+        if msg.author.bot || msg.is_private() {
             return;
         }
 

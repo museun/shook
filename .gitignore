@@ -4,3 +4,4 @@
 *.yml
 default_help.*
 !default_help.yml
+user_defined.*

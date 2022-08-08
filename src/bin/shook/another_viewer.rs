@@ -3,7 +3,7 @@ use std::time::Duration;
 use fastrand_ext::IterExt;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use shook::{helix::EmoteMap, prelude::*};
+use shook::{config::Secret, helix::EmoteMap, prelude::*};
 use tokio::{sync::Mutex, time::Instant};
 
 pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
@@ -14,6 +14,8 @@ struct AnotherViewer {
     last: Mutex<Instant>,
     emote_map: EmoteMap,
     client: reqwest::Client,
+    key: Secret<String>,
+    remote: String,
 }
 
 impl AnotherViewer {
@@ -22,6 +24,16 @@ impl AnotherViewer {
             last: Mutex::new(Instant::now()),
             emote_map: state.get::<EmoteMap>().await.clone(),
             client: reqwest::Client::new(),
+            key: state
+                .get::<shook::config::AnotherViewer>()
+                .await
+                .bearer_token
+                .clone(),
+            remote: state
+                .get::<shook::config::AnotherViewer>()
+                .await
+                .remote
+                .clone(),
         };
 
         let reg = state.get().await;
@@ -33,7 +45,7 @@ impl AnotherViewer {
 
     async fn speak(self: Arc<Self>, msg: Message) -> impl Render {
         let ctx = msg.args().get("context");
-        self.generate(ctx).await
+        self.generate(ctx).await.map(Response::reply)
     }
 
     async fn listen(self: Arc<Self>, msg: Message) -> impl Render {
@@ -46,27 +58,27 @@ impl AnotherViewer {
 
         let s = msg.data().split_ascii_whitespace().collect::<Vec<_>>();
         if let Some(msg) = self.try_kappa(&s).await {
-            return Some(msg);
+            return Some(msg.boxed());
         }
 
         if let Some(msg) = self.try_mention(msg.sender_name(), &s).await {
-            return Some(msg);
+            return Some(msg.boxed());
         }
 
         if !self.check_timeout().await {
             return None;
         }
-        self.generate(None).await
+        self.generate(None).await.map(|r| r.boxed())
     }
 
-    async fn try_mention<'a>(&self, sender: &str, ctx: &'a [&'a str]) -> Option<String> {
+    async fn try_mention<'a>(&self, sender: &str, ctx: &'a [&'a str]) -> Option<impl Render> {
         if Self::contains_bot_name(ctx) {
-            return self.generate(Some(sender)).await;
+            return self.generate(Some(sender)).await.map(Response::reply);
         }
         None
     }
 
-    async fn try_kappa<'a>(&self, ctx: &'a [&'a str]) -> Option<String> {
+    async fn try_kappa<'a>(&self, ctx: &'a [&'a str]) -> Option<impl Render> {
         let kappa = ctx
             .iter()
             .filter(|c| self.emote_map.has(c))
@@ -85,11 +97,8 @@ impl AnotherViewer {
     }
 
     async fn train(&self, data: &str) -> Option<()> {
-        const BRAIN: &str = "http://localhost:50000/museun/train";
-
         static BANNED: Lazy<Regex> =
             Lazy::new(|| Regex::new(r#"((!|@).+?\b)|(\bshaken(_bot)?\b)"#).unwrap());
-
         let next = BANNED.replace_all(data, "");
 
         use shook::IterExt as _;
@@ -104,7 +113,8 @@ impl AnotherViewer {
         }
 
         self.client
-            .post(BRAIN)
+            .post(format!("{}/train", &self.remote))
+            .bearer_auth(&*self.key)
             .json(&Req { data })
             .send()
             .await
@@ -113,7 +123,6 @@ impl AnotherViewer {
     }
 
     async fn generate(&self, context: Option<&str>) -> Option<String> {
-        const BRAIN: &str = "http://localhost:50000/museun/generate";
         #[derive(serde::Deserialize)]
         struct Resp {
             data: String,
@@ -126,27 +135,26 @@ impl AnotherViewer {
             context: Option<String>,
         }
 
-        // TODO min/max
-        let resp: Resp = self
-            .client
-            .get(BRAIN)
-            .json(&Req {
-                min: 3,
-                max: 50,
-                context: context.map(ToString::to_string),
-            })
+        let req = Req {
+            min: 3,
+            max: 50,
+            context: context.map(ToString::to_string),
+        };
+
+        self.client
+            .get(format!("{}/generate", &self.remote))
+            .json(&req)
             .timeout(Duration::from_secs(3))
             .send()
             .await
             .ok()?
-            .json()
+            .json::<Resp>()
             .await
-            .ok()?;
-
-        Some(resp.data)
+            .ok()
+            .map(|c| c.data)
     }
 
-    fn contains_bot_name<'a>(ctx: &'a [&'a str]) -> bool {
+    fn contains_bot_name(ctx: &[&str]) -> bool {
         fn match_name(s: &str) -> bool {
             const HEAD: &[char] = &['(', '[', '{', '@', '\'', '"'];
             const TAIL: &[char] = &['"', '\'', ',', '.', '?', ':', ';', '!', '}', ']', ')'];
