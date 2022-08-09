@@ -8,9 +8,12 @@ pub struct EmoteMap {
 }
 
 impl EmoteMap {
-    pub fn with_emotes<'k, 'v>(mut self, iter: impl Iterator<Item = (&'k str, &'v str)>) -> Self {
+    pub fn with_emotes<'k, 'v, I>(mut self, iter: I) -> Self
+    where
+        I: Iterator<Item = (&'k str, &'v str)>,
+    {
         for (k, v) in iter {
-            self.name_to_id.insert(v.into(), k.into());
+            self.id_to_name.insert(v.into(), k.into());
             self.name_to_id.insert(k.into(), v.into());
             self.names.insert(k.into());
         }
