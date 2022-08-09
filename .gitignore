@@ -6,3 +6,4 @@ shook_local/target
 default_help.*
 !default_help.yml
 user_defined.*
+!user_defined.rs
