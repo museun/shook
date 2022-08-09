@@ -125,6 +125,7 @@ impl Message {
         Ok(())
     }
 
+    // TODO redo these
     pub fn require_broadcaster(&self) -> Option<BoxedRender> {
         (!self.is_from_broadcaster()).then(|| "that requires you to be the broadcaster".boxed())
     }

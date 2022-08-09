@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use serenity::model::prelude::ChannelId;
+use serenity::model::prelude::{ChannelId, Message as SerenityMessage};
 
 #[derive(Debug)]
 pub struct Message {
@@ -10,7 +10,7 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn from_serenity(msg: serenity::model::prelude::Message) -> Self {
+    pub fn from_serenity(msg: SerenityMessage) -> Self {
         Self {
             sender: msg.author.name.into(),
             target: msg.channel_id,
