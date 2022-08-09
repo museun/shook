@@ -3,6 +3,7 @@ use std::{collections::BTreeSet, time::SystemTime};
 use anyhow::Context;
 use shook::{
     help::{Descriptions, Registry},
+    message,
     prelude::*,
     FormatTime,
 };
@@ -25,8 +26,26 @@ impl Builtin {
             .bind("builtin::time", Self::time)
             .bind("builtin::hello", Self::hello)
             .bind("builtin::help", Self::help)
+            .bind("builtin::version", Self::version)
             .listen(Self::say_hello)
             .into_callable())
+    }
+
+    async fn version(self: Arc<Self>, msg: Message) -> impl Render {
+        Simple {
+            twitch: format!(
+                "{} on branch '{}' (built on {})",
+                shook::GIT_REVISION,
+                shook::GIT_BRANCH,
+                shook::BUILD_TIME
+            ),
+            discord: format!(
+                "`{}` on branch `{}` (built on `{}`)",
+                shook::GIT_REVISION,
+                shook::GIT_BRANCH,
+                shook::BUILD_TIME
+            ),
+        }
     }
 
     async fn help(self: Arc<Self>, msg: Message) -> impl Render {

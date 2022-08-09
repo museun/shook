@@ -42,3 +42,5 @@ pub mod prelude {
 }
 
 pub const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+
+include!(concat!(env!("OUT_DIR"), "/", "version.rs"));

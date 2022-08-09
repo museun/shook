@@ -41,7 +41,7 @@ impl Connection {
     }
 
     pub async fn write_raw(&mut self, data: &str) -> anyhow::Result<()> {
-        log::trace!("-> {}", data.escape_debug());
+        log::trace!(target:"shook::twitch","-> {}", data.escape_debug());
         self.stream.write_all(data.as_bytes()).await?;
         if !data.ends_with('\n') {
             self.stream.write_all(b"\r\n").await?;

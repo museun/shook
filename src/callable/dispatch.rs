@@ -22,7 +22,16 @@ where
         Self { seq }
     }
 
-    pub fn dispatch(self, msg: &Message) -> impl Stream<Item = BoxedRender> {
+    pub async fn into_render(self, msg: &Message) -> impl Render {
+        let mut stream = self.dispatch(msg);
+        let mut out = vec![];
+        while let Some(el) = stream.next().await {
+            out.push(el);
+        }
+        out
+    }
+
+    fn dispatch(self, msg: &Message) -> impl Stream<Item = BoxedRender> {
         let (tx, rx) = tokio::sync::mpsc::channel(std::cmp::max(1, self.seq.len()));
         for callable in self.seq.iter().map(Clone::clone) {
             let tx = tx.clone();
@@ -34,17 +43,5 @@ where
         }
         drop(tx);
         tokio_stream::wrappers::ReceiverStream::new(rx)
-    }
-
-    pub async fn into_render(self, msg: &Message) -> impl Render
-    where
-        Self: 'a,
-    {
-        let mut stream = self.dispatch(msg);
-        let mut out = vec![];
-        while let Some(el) = stream.next().await {
-            out.push(el);
-        }
-        out
     }
 }

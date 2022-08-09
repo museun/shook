@@ -1,6 +1,10 @@
 use std::{any::Any, sync::Arc};
 
-use crate::{args::Arguments, state::GlobalState};
+use crate::{
+    args::Arguments,
+    render::{BoxedRender, Render},
+    state::GlobalState,
+};
 
 #[rustfmt::skip]
 macro_rules! message {
@@ -121,12 +125,8 @@ impl Message {
         Ok(())
     }
 
-    pub fn require_broadcaster(&self) -> anyhow::Result<()> {
-        anyhow::ensure!(
-            self.is_from_broadcaster(),
-            "that requires you to be the broadcaster"
-        );
-        Ok(())
+    pub fn require_broadcaster(&self) -> Option<BoxedRender> {
+        (!self.is_from_broadcaster()).then(|| "that requires you to be the broadcaster".boxed())
     }
 
     pub fn require_elevation(&self) -> anyhow::Result<()> {

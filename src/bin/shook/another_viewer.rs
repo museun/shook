@@ -55,13 +55,13 @@ impl AnotherViewer {
 
         // TODO not in this task
         let _ = self.train(msg.data()).await;
-
         let s = msg.data().split_ascii_whitespace().collect::<Vec<_>>();
-        if let Some(msg) = self.try_kappa(&s).await {
+
+        if let Some(msg) = self.try_mention(msg.sender_name(), &s).await {
             return Some(msg.boxed());
         }
 
-        if let Some(msg) = self.try_mention(msg.sender_name(), &s).await {
+        if let Some(msg) = self.try_kappa(&s).await {
             return Some(msg.boxed());
         }
 

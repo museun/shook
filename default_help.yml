@@ -20,11 +20,14 @@ builtin:
   aliases:
   - '!greet'
 
+- command: '!version'
+  description: "gets the current bot version"
+
 - command: '!help'
   usage: <command?>
   description: looks up, or lists commands
 
-spotify:
+what_song:
 - command: '!song'
   description: gets the currently playing song
   aliases:
@@ -33,6 +36,10 @@ spotify:
 
 - command: '!previous'
   description: gets the previously played song
+
+- command: '!swap'
+  description: "swaps song provides"
+  usage: "<service>"
 
 crates:
 - command: '!crate'

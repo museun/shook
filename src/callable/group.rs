@@ -13,7 +13,7 @@ impl<'a> IntoCallable for Group<'a> {
         let callables = Arc::new(self.callables);
         let func = move |msg| {
             let commands = Arc::clone(&callables);
-            Box::pin(async move { Dispatch::new(&commands).into_render(&msg).await.boxed() })
+            async move { Dispatch::new(&commands).into_render(&msg).await.boxed() }
         };
         Arc::new(func)
     }

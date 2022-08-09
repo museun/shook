@@ -9,16 +9,30 @@ use shook::{
 mod another_viewer;
 mod builtin;
 mod crates;
-mod spotify;
+mod local;
 mod user_defined;
+mod what_song;
 
 fn load_config(state: &mut State) -> anyhow::Result<()> {
     use shook::config::*;
-    state.insert(Irc::load_from_env()?);
-    state.insert(Twitch::load_from_env()?);
-    state.insert(Spotify::load_from_env()?);
-    state.insert(Discord::load_from_env()?);
-    state.insert(AnotherViewer::load_from_env()?);
+    fn load<F: LoadFromEnv + Send + Sync + 'static>(state: &mut State) -> anyhow::Result<()> {
+        Ok(state.insert(F::load_from_env()?))
+    }
+    macro_rules! load {
+        ($($ty:ty)*) => {
+            $(load::<$ty>(state)?;)*
+        };
+    }
+
+    load! {
+        Irc
+        Twitch
+        Spotify
+        Discord
+        AnotherViewer
+        Youtube
+    }
+
     log::info!("succesfully loaded env");
     Ok(())
 }
@@ -80,12 +94,18 @@ async fn main() -> anyhow::Result<()> {
     let state = GlobalState::new(state);
     log::trace!("binding callables");
     let callables = [
-        builtin::bind(state.clone()).await?, //
+        // another_viewer::bind(state.clone()).await?,
+        builtin::bind(state.clone()).await?,
         crates::bind(state.clone()).await?,
-        spotify::bind(state.clone()).await?,
-        another_viewer::bind(state.clone()).await?,
         user_defined::bind(state.clone()).await?,
+        what_song::bind(state.clone()).await?,
     ];
+
+    log::debug!("starting local bot");
+    let discord = tokio::task::spawn({
+        let state = state.clone();
+        local::create_bot(state, callables.clone())
+    });
 
     log::debug!("starting twitch bot");
     let twitch = tokio::task::spawn({

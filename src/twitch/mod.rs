@@ -10,7 +10,7 @@ mod types;
 use connection::Connection;
 pub use message::Message;
 pub use tags::Tags;
-pub(crate) use types::{Identity, Privmsg};
+pub use types::{Identity, Privmsg};
 
 pub async fn create_bot<const N: usize>(
     state: GlobalState,

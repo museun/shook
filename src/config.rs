@@ -50,6 +50,13 @@ fn load_from_env<T: Default + std::fmt::Debug>(keys: &[(&str, Assign<T>)]) -> an
     this
 }
 
+pub trait LoadFromEnv
+where
+    Self: Sized,
+{
+    fn load_from_env() -> anyhow::Result<Self>;
+}
+
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Irc {
     pub addr: String,
@@ -58,8 +65,8 @@ pub struct Irc {
     pub channel: String,
 }
 
-impl Irc {
-    pub fn load_from_env() -> anyhow::Result<Self> {
+impl LoadFromEnv for Irc {
+    fn load_from_env() -> anyhow::Result<Self> {
         load_from_env(&[
             ("SHAKEN_TWITCH_IRC_ADDRESS", |t, v| t.addr = v),
             ("SHAKEN_TWITCH_NAME", |t, v| t.name = v),
@@ -75,8 +82,8 @@ pub struct Twitch {
     pub client_secret: Secret<String>,
 }
 
-impl Twitch {
-    pub fn load_from_env() -> anyhow::Result<Self> {
+impl LoadFromEnv for Twitch {
+    fn load_from_env() -> anyhow::Result<Self> {
         load_from_env(&[
             ("SHAKEN_TWITCH_CLIENT_ID", |t, v| t.client_id = v),
             ("SHAKEN_TWITCH_CLIENT_SECRET", |t, v| {
@@ -91,8 +98,8 @@ pub struct Discord {
     pub oauth_token: Secret<String>,
 }
 
-impl Discord {
-    pub fn load_from_env() -> anyhow::Result<Self> {
+impl LoadFromEnv for Discord {
+    fn load_from_env() -> anyhow::Result<Self> {
         load_from_env(&[("SHAKEN_DISCORD_OAUTH_TOKEN", |t, v| {
             t.oauth_token = Secret(v)
         })])
@@ -105,8 +112,8 @@ pub struct Spotify {
     pub client_secret: Secret<String>,
 }
 
-impl Spotify {
-    pub fn load_from_env() -> anyhow::Result<Self> {
+impl LoadFromEnv for Spotify {
+    fn load_from_env() -> anyhow::Result<Self> {
         load_from_env(&[
             ("SHAKEN_SPOTIFY_CLIENT_ID", |t, v| t.client_id = v),
             ("SHAKEN_SPOTIFY_CLIENT_SECRET", |t, v| {
@@ -122,13 +129,24 @@ pub struct AnotherViewer {
     pub bearer_token: Secret<String>,
 }
 
-impl AnotherViewer {
-    pub fn load_from_env() -> anyhow::Result<Self> {
+impl LoadFromEnv for AnotherViewer {
+    fn load_from_env() -> anyhow::Result<Self> {
         load_from_env(&[
             ("SHAKEN_BRAIN_REMOTE_URL", |t, v| t.remote = v),
             ("SHAKEN_BRAIN_GENERATE_TOKEN", |t, v| {
                 t.bearer_token = Secret(v)
             }),
         ])
+    }
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct Youtube {
+    pub endpoint: String,
+}
+
+impl LoadFromEnv for Youtube {
+    fn load_from_env() -> anyhow::Result<Self> {
+        load_from_env(&[("YOUTUBE_HISTORY_SERVER", |t, v| t.endpoint = v)])
     }
 }

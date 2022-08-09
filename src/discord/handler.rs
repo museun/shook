@@ -1,5 +1,5 @@
 use serenity::{
-    model::prelude::Message as DiscordMessage,
+    model::prelude::{Channel, Message as DiscordMessage},
     prelude::{Context, EventHandler},
 };
 
@@ -23,24 +23,35 @@ impl<const N: usize> EventHandler for Handler<N> {
             return;
         }
 
+        let ch = match msg.channel(&ctx).await {
+            Ok(Channel::Guild(ch)) => ch,
+            _ => return,
+        };
+
+        log::debug!(target:"shook::discord", "[{}] {}: {}", ch.name(), msg.author.name, msg.content);
+
         let id = msg.channel_id;
         let sm = ShookMessage::new(
-            super::Message::from_serenity(msg),
+            super::Message::from_serenity(msg.clone()),
             MessageKind::Discord,
             self.state.clone(),
         );
 
+        let ch = ch.name();
         for resp in dispatch_and_render(&self.callables, &sm, RenderFlavor::Discord).await {
             match resp {
-                Response::Say(msg) => {
-                    let _ = id.say(&ctx, msg).await;
+                Response::Say(out) => {
+                    log::trace!(target:"shook::discord","say [{ch}] {out}");
+                    let _ = id.say(&ctx, out).await;
                 }
-                Response::Reply(msg) => {
-                    // TODO reply
-                    let _ = id.say(&ctx, msg).await;
+                Response::Reply(out) => {
+                    let sender = &msg.author.name;
+                    log::trace!(target:"shook::discord","reply ({sender}) [{ch}] {out}");
+                    let _ = msg.reply(&ctx, out).await;
                 }
-                Response::Problem(msg) => {
-                    let _ = id.say(&ctx, format!("a problem occurred: {msg}")).await;
+                Response::Problem(out) => {
+                    log::trace!(target:"shook::discord","problem [{ch}] {out}");
+                    let _ = id.say(&ctx, format!("a problem occurred: {out}")).await;
                 }
             };
         }
