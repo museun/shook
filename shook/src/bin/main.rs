@@ -96,7 +96,7 @@ async fn main() -> anyhow::Result<()> {
     log::debug!("starting local bot");
     let local = tokio::task::spawn({
         let state = state.clone();
-        shook::local::create_bot(state, callables.clone())
+        shook_local::create_bot(state, callables.clone())
     });
 
     log::debug!("starting twitch bot");

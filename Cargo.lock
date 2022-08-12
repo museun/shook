@@ -1520,6 +1520,7 @@ dependencies = [
  "shook_config",
  "shook_core",
  "shook_helix",
+ "shook_local",
  "shook_twilight",
  "shook_twitch",
  "simple_env_load",
@@ -1576,8 +1577,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "gumdrop",
+ "log",
  "serde",
  "serde_json",
+ "shook_core",
+ "shook_twitch",
  "tokio",
  "tokio-stream",
 ]

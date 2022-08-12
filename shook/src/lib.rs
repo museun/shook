@@ -6,7 +6,6 @@ pub mod user_defined;
 pub mod what_song;
 
 pub mod config;
-pub mod local;
 
 mod queue;
 

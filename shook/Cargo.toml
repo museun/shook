@@ -22,20 +22,21 @@ simple_env_load  = "0.2.0"
 time             = { version = "0.3.13", features = ["local-offset", "formatting"] }
 tokio            = { version = "1.20.1", features = ["fs", "rt", "sync", "io-util", "net", "macros", "test-util"] }
 tokio-stream     = { version = "0.1.9", features = ["sync"] }
-url              = "2.2.2"
-twilight-model   = "0.12.3"
-twilight-http    = { version = "0.12.2", default-features = false, features = ["native"] }
 twilight-gateway = { version = "0.12.1", default-features = false, features = ["native"] }
+twilight-http    = { version = "0.12.2", default-features = false, features = ["native"] }
+twilight-model   = "0.12.3"
+url              = "2.2.2"
 
 fastrand_ext = { git = "https://github.com/museun/fastrand_ext", version = "0.1.0" }
 what_theme   = { git = "https://github.com/museun/what_theme", version = "0.1.0" }
 persist      = { git = "https://github.com/museun/persist", version = "0.1.0", features = ["tokio", "json", "yaml"] }
 
-shook_core     = { path = "../shook_core" }
 shook_config   = { path = "../shook_config" }
+shook_core     = { path = "../shook_core" }
 shook_helix    = { path = "../shook_helix" }
-shook_twitch   = { path = "../shook_twitch" }
+shook_local    = { path = "../shook_local" }
 shook_twilight = { path = "../shook_twilight" }
+shook_twitch   = { path = "../shook_twitch" }
 
 [dev-dependencies]
 insta = "1.18.2"
