@@ -6,18 +6,6 @@ use shook_helix::{EmoteMap, HelixClient, OAuth};
 
 use persist::{tokio::PersistExt as _, yaml::Yaml};
 
-#[allow(dead_code)]
-mod another_viewer;
-mod builtin;
-mod crates;
-mod user_defined;
-mod what_song;
-
-mod config;
-mod local;
-
-mod queue;
-
 fn load_config(state: &mut State) -> anyhow::Result<()> {
     use shook_config::*;
     fn load<F: LoadFromEnv + Send + Sync + 'static>(state: &mut State) -> anyhow::Result<()> {
@@ -33,9 +21,9 @@ fn load_config(state: &mut State) -> anyhow::Result<()> {
         shook_twitch::config::Irc
         shook_helix::config::Twitch
         shook_twilight::config::Discord
-        crate::config::Spotify
-        crate::config::AnotherViewer
-        crate::config::Youtube
+        shook::config::Spotify
+        shook::config::AnotherViewer
+        shook::config::Youtube
     }
 
     log::info!("succesfully loaded env");
@@ -99,16 +87,16 @@ async fn main() -> anyhow::Result<()> {
     log::trace!("binding callables");
     let callables = [
         // another_viewer::bind(state.clone()).await?,w
-        builtin::bind(state.clone()).await?,
-        crates::bind(state.clone()).await?,
-        user_defined::bind(state.clone()).await?,
-        what_song::bind(state.clone()).await?,
+        shook::builtin::bind(state.clone()).await?,
+        shook::crates::bind(state.clone()).await?,
+        shook::user_defined::bind(state.clone()).await?,
+        shook::what_song::bind(state.clone()).await?,
     ];
 
     log::debug!("starting local bot");
     let local = tokio::task::spawn({
         let state = state.clone();
-        local::create_bot(state, callables.clone())
+        shook::local::create_bot(state, callables.clone())
     });
 
     log::debug!("starting twitch bot");
@@ -131,5 +119,3 @@ async fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
-
-include!(concat!(env!("OUT_DIR"), "/", "version.rs"));
