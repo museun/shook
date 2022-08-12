@@ -115,6 +115,10 @@ impl Spotify {
     }
 
     async fn current(&self) -> impl Render {
+        if let Some(song) = self.queue.lock().await.last() {
+            return Ok(Self::format_song(song));
+        }
+
         if let Some(song) = self.spotify.try_get_song().await {
             let out = Self::format_song(&song);
             self.queue.lock().await.push(song);
