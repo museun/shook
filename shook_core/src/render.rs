@@ -62,36 +62,6 @@ pub async fn dispatch_and_render(
         .render(flavor)
 }
 
-macro_rules! md_generate {
-    ($($ident:ident: $head:expr => $tail:expr)*) => {
-        $(
-        pub struct $ident<T>(pub T);
-        impl<T: std::fmt::Display> std::fmt::Display for $ident<T> {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{head}{}{tail}", self.0, head = $head, tail = $tail)
-            }
-        }
-        impl<T: std::fmt::Display + Send + Sync> Render for $ident<T> {
-            fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
-                match flavor {
-                    RenderFlavor::Twitch => self.0.to_string().render(flavor),
-                    RenderFlavor::Discord => self.to_string().render(flavor),
-                }
-            }
-        }
-        )*
-    };
-}
-
-md_generate! {
-    Code:      "`"  => "`"
-    Bold:      "**" => "**"
-    Underline: "_"  => "__"
-    Italics:   "_"  => "_"
-    Strikeout: "~"  => "~"
-    Hidden:    "<"  => ">"
-}
-
 #[non_exhaustive]
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum RenderFlavor {
