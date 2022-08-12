@@ -7,17 +7,18 @@ use twilight_gateway::{Intents, Shard};
 use twilight_http::{request::channel::message::create_message::CreateMessage, Client};
 use twilight_model::{
     channel::message::MessageType,
-    channel::Message as TwilightMessage,
+    channel::Message,
     id::{marker::ChannelMarker, Id},
 };
 
-use crate::{
+use shook_core::{
     callable::SharedCallable,
     message::MessageKind,
     prelude::GlobalState,
     render::{dispatch_and_render, RenderFlavor},
 };
 
+pub mod config;
 mod state;
 
 pub async fn create_bot<const N: usize>(
@@ -84,12 +85,18 @@ struct Bot<const N: usize> {
 }
 
 impl<const N: usize> Bot<N> {
-    async fn handle(&self, msg: TwilightMessage) -> anyhow::Result<()> {
-        use crate::prelude::{Message, Response};
+    async fn handle(&self, msg: Message) -> anyhow::Result<()> {
+        use shook_core::prelude::{Message as ShookMessage, Response};
 
         let (ch, id) = (msg.channel_id, msg.id);
 
-        let msg = Message::new(msg, MessageKind::Discord, self.state.clone());
+        let source = get_channel_name(&self.client, ch).await?;
+
+        let msg = ShookMessage::new(
+            TwilightMessage { inner: msg, source },
+            MessageKind::Discord,
+            self.state.clone(),
+        );
         for resp in dispatch_and_render(&self.handlers, &msg, RenderFlavor::Discord).await {
             match resp {
                 Response::Say(resp) => {
@@ -107,6 +114,7 @@ impl<const N: usize> Bot<N> {
 
         Ok(())
     }
+
     async fn create_message<'r>(
         &'r self,
         ch: Id<ChannelMarker>,
@@ -119,13 +127,30 @@ impl<const N: usize> Bot<N> {
     }
 }
 
-impl crate::message::MessageType for TwilightMessage {
+struct TwilightMessage {
+    inner: Message,
+    source: String,
+}
+
+impl std::ops::Deref for TwilightMessage {
+    type Target = Message;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl shook_core::message::MessageType for TwilightMessage {
     fn data(&self) -> &str {
         &self.content
     }
 
     fn sender_name(&self) -> &str {
         &self.author.name
+    }
+
+    fn source(&self) -> &str {
+        &self.source
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

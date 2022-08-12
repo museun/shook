@@ -1,7 +1,7 @@
 use std::{collections::BTreeSet, time::SystemTime};
 
 use anyhow::Context;
-use shook::{help::Descriptions, prelude::*, FormatTime};
+use shook_core::{help::Descriptions, prelude::*, FormatTime};
 use tokio::time::Instant;
 
 pub struct Builtin(Instant);
@@ -30,15 +30,15 @@ impl Builtin {
         Simple {
             twitch: format!(
                 "{} on branch '{}' (built on {})",
-                shook::GIT_REVISION,
-                shook::GIT_BRANCH,
-                shook::BUILD_TIME
+                crate::GIT_REVISION,
+                crate::GIT_BRANCH,
+                crate::BUILD_TIME
             ),
             discord: format!(
                 "`{}` on branch `{}` (built on `{}`)",
-                shook::GIT_REVISION,
-                shook::GIT_BRANCH,
-                shook::BUILD_TIME
+                crate::GIT_REVISION,
+                crate::GIT_BRANCH,
+                crate::BUILD_TIME
             ),
         }
     }
@@ -145,7 +145,7 @@ impl Builtin {
             None => msg.streamer_name().await,
         };
 
-        let client = msg.state().get::<shook::helix::HelixClient>().await;
+        let client = msg.state().get::<shook_helix::HelixClient>().await;
         if let [stream] = &*client.get_streams([&channel]).await? {
             let uptime = (SystemTime::now() - stream.started_at).as_readable_time();
             return Ok(Simple {

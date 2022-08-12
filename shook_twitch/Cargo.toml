@@ -1,0 +1,12 @@
+[package]
+name = "shook_twitch"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.61"
+log = "0.4.17"
+serde = { version = "1.0.143", features = ["derive"] }
+tokio = { version = "1.20.1", features = ["net", "io-util", "rt"] }
+
+shook_core = { path = "../shook_core" }

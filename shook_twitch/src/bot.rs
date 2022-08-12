@@ -1,8 +1,7 @@
-use crate::{
-    callable::SharedCallable,
-    message::{Message, MessageKind},
-    render::{dispatch_and_render, RenderFlavor, Response},
-    state::GlobalState,
+use shook_core::{
+    message::MessageKind,
+    prelude::{GlobalState, Message, RenderFlavor, Response, SharedCallable},
+    render::dispatch_and_render,
 };
 
 use super::{Connection, Message as TwitchMessage, Privmsg};
@@ -42,8 +41,8 @@ impl<const N: usize> Bot<N> {
             self.state.clone(),
         );
 
-        let channel = msg.as_twitch().unwrap().channel();
         let sender = msg.sender_name();
+        let channel = msg.source();
 
         for resp in dispatch_and_render(&self.callables, &msg, RenderFlavor::Twitch).await {
             let out = match resp {

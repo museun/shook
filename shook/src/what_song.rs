@@ -6,7 +6,8 @@ use rspotify::{
     prelude::{Id, OAuthClient},
     AuthCodeSpotify, Credentials, OAuth,
 };
-use shook::{helix::HelixClient, prelude::*, queue::Queue, IterExt};
+use shook_core::{prelude::*, queue::Queue, IterExt};
+use shook_helix::HelixClient;
 use tokio::sync::Mutex;
 
 pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
@@ -98,7 +99,7 @@ impl Spotify {
 
     async fn create(state: GlobalState) -> anyhow::Result<Self> {
         let spotify = {
-            let config = state.get::<shook::config::Spotify>().await;
+            let config = state.get::<crate::config::Spotify>().await;
             SpotifyClient::new(&config.client_id, &config.client_secret).await?
         };
         let queue = Arc::new(Mutex::new(Queue::with_capacity(Self::HISTORY_LIMIT)));
@@ -135,7 +136,7 @@ impl Spotify {
 
     async fn update_loop(
         queue: Arc<Mutex<Queue<Song>>>,
-        twitch: shook::helix::HelixClient,
+        twitch: HelixClient,
         spotify: SpotifyClient,
         streamer: Streamer,
     ) {
@@ -174,7 +175,7 @@ impl Youtube {
     async fn create(state: GlobalState) -> Self {
         Self {
             client: reqwest::Client::new(),
-            ep: state.get::<shook::config::Youtube>().await.endpoint.clone(),
+            ep: state.get::<crate::config::Youtube>().await.endpoint.clone(),
         }
     }
 
@@ -257,9 +258,9 @@ impl WhatSong {
     }
 
     async fn swap(self: Arc<Self>, msg: Message) -> impl Render {
-        if let Some(nope) = msg.require_broadcaster() {
-            return Some(nope);
-        }
+        // if let Some(nope) = msg.require_broadcaster() {
+        //     return Some(nope);
+        // }
 
         let mode = match &msg.args()["service"] {
             "spotify" => Mode::Spotify,

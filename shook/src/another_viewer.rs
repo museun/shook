@@ -3,7 +3,8 @@ use std::time::Duration;
 use fastrand_ext::IterExt;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use shook::{config::Secret, helix::EmoteMap, prelude::*};
+use shook_core::{config::Secret, prelude::*};
+use shook_helix::EmoteMap;
 use tokio::{sync::Mutex, time::Instant};
 
 pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
@@ -20,7 +21,7 @@ struct AnotherViewer {
 
 impl AnotherViewer {
     async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-        let config: shook::config::AnotherViewer = state.get_owned().await;
+        let config: crate::config::AnotherViewer = state.get_owned().await;
 
         let this = Self {
             last: Mutex::new(Instant::now()),
@@ -95,7 +96,7 @@ impl AnotherViewer {
             Lazy::new(|| Regex::new(r#"((!|@).+?\b)|(\bshaken(_bot)?\b)"#).unwrap());
         let next = BANNED.replace_all(data, "");
 
-        use shook::IterExt as _;
+        use shook_core::IterExt as _;
         let data = next
             .split_ascii_whitespace()
             .filter(|c| url::Url::parse(c).is_err())

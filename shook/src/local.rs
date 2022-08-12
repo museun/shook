@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
-use shook::{
+use shook_core::{
     message::MessageKind,
     prelude::{GlobalState, Message, SharedCallable},
     render::{dispatch_and_render, RenderFlavor, Response},
-    twitch,
 };
+
+use shook_twitch as twitch;
+
 use tokio::{
     io::{AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader},
     net::{TcpListener, TcpStream},

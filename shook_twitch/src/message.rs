@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
+use shook_core::message::MessageType;
+
 use super::{Privmsg, Tags};
 
 #[derive(Debug)]
 pub struct Message {
-    pub(crate) sender: Arc<str>,
+    sender: Arc<str>,
     target: Arc<str>,
-    pub(crate) data: Arc<str>,
+    data: Arc<str>,
     tags: Arc<Tags>,
 }
 
@@ -26,5 +28,23 @@ impl Message {
 
     pub fn tags(&self) -> &Tags {
         &self.tags
+    }
+}
+
+impl MessageType for Message {
+    fn data(&self) -> &str {
+        &self.data
+    }
+
+    fn sender_name(&self) -> &str {
+        &self.sender
+    }
+
+    fn source(&self) -> &str {
+        &&self.target
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }

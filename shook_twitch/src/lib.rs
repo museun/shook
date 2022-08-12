@@ -1,4 +1,6 @@
-use crate::{callable::SharedCallable, state::GlobalState};
+use shook_core::prelude::{GlobalState, SharedCallable};
+
+pub mod config;
 
 mod bot;
 mod connection;

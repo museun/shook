@@ -4,7 +4,7 @@ use persist::{
 };
 use std::collections::HashMap;
 
-use shook::{help::Registry, prelude::*};
+use shook_core::{help::Registry, prelude::*};
 use tokio::sync::Mutex;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, PartialOrd, Eq, Ord)]
@@ -133,7 +133,7 @@ impl UserDefined {
     }
 
     async fn add(self: Arc<Self>, msg: Message) -> impl Render {
-        msg.require_elevation()?;
+        // msg.require_elevation()?;
 
         let name = Self::validate_command(&msg.args()["name"])?;
         let body = &msg.args()["body"];
@@ -156,7 +156,7 @@ impl UserDefined {
     }
 
     async fn update(self: Arc<Self>, msg: Message) -> impl Render {
-        msg.require_elevation()?;
+        // msg.require_elevation()?;
 
         let name = Self::validate_command(&msg.args()["name"])?;
         let body = &msg.args()["body"];
@@ -180,7 +180,7 @@ impl UserDefined {
     }
 
     async fn remove(self: Arc<Self>, msg: Message) -> impl Render {
-        msg.require_elevation()?;
+        // msg.require_elevation()?;
 
         let name = Self::validate_command(&msg.args()["name"])?;
 
@@ -201,7 +201,7 @@ impl UserDefined {
     }
 
     async fn alias(self: Arc<Self>, msg: Message) -> impl Render {
-        msg.require_elevation()?;
+        // msg.require_elevation()?;
 
         let from = Self::validate_command(&msg.args()["from"])?;
         let to = Self::validate_command(&msg.args()["to"])?;

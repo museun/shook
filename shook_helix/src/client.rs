@@ -15,7 +15,7 @@ impl HelixClient {
 
     pub fn new_with_ep(ep: impl Into<Option<String>>, client_id: &str, bearer_token: &str) -> Self {
         let agent = reqwest::Client::builder()
-            .user_agent(crate::USER_AGENT)
+            .user_agent(shook_core::USER_AGENT)
             // TODO use default headers
             .build()
             .expect("valid client");

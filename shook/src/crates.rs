@@ -1,4 +1,4 @@
-use shook::prelude::*;
+use shook_core::prelude::*;
 
 // TODO redo this
 enum Match {
@@ -83,7 +83,7 @@ impl CratesClient {
     fn new() -> Self {
         Self {
             client: reqwest::Client::builder()
-                .user_agent(shook::USER_AGENT)
+                .user_agent(shook_core::USER_AGENT)
                 .build()
                 .expect("valid client"),
             ep: String::from("https://crates.io/api/v1/crates"),

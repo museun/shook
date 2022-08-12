@@ -8,3 +8,7 @@ pub mod data;
 
 mod emote_map;
 pub use emote_map::EmoteMap;
+
+mod serde;
+
+pub mod config;

@@ -1,21 +1,23 @@
-use shook::{
+use shook_core::{
     help::Registry,
     prelude::{GlobalState, State, Streamer},
-    twilight, twitch,
 };
+use shook_helix::{EmoteMap, HelixClient, OAuth};
 
-use persist::{tokio::PersistExt, yaml::Yaml};
+use persist::{tokio::PersistExt as _, yaml::Yaml};
 
 #[allow(dead_code)]
 mod another_viewer;
 mod builtin;
 mod crates;
-mod local;
 mod user_defined;
 mod what_song;
 
+mod config;
+mod local;
+
 fn load_config(state: &mut State) -> anyhow::Result<()> {
-    use shook::config::*;
+    use shook_core::config::*;
     fn load<F: LoadFromEnv + Send + Sync + 'static>(state: &mut State) -> anyhow::Result<()> {
         F::load_from_env().map(|config| state.insert(config))
     }
@@ -26,12 +28,12 @@ fn load_config(state: &mut State) -> anyhow::Result<()> {
     }
 
     load! {
-        Irc
-        Twitch
-        Spotify
-        Discord
-        AnotherViewer
-        Youtube
+        shook_twitch::config::Irc
+        shook_helix::config::Twitch
+        shook_twilight::config::Discord
+        crate::config::Spotify
+        crate::config::AnotherViewer
+        crate::config::Youtube
     }
 
     log::info!("succesfully loaded env");
@@ -45,8 +47,7 @@ async fn load_help(state: &mut State) -> anyhow::Result<()> {
 }
 
 async fn init_twitch(state: &mut State) -> anyhow::Result<()> {
-    use shook::{config, helix::*};
-    let twitch = state.get::<config::Twitch>()?;
+    let twitch = state.get::<shook_helix::config::Twitch>()?;
 
     log::debug!("getting twitch oauth tokens");
     let twitch_oauth = OAuth::create(&twitch.client_id, &twitch.client_secret).await?;
@@ -95,7 +96,7 @@ async fn main() -> anyhow::Result<()> {
     let state = GlobalState::new(state);
     log::trace!("binding callables");
     let callables = [
-        // another_viewer::bind(state.clone()).await?,
+        // another_viewer::bind(state.clone()).await?,w
         builtin::bind(state.clone()).await?,
         crates::bind(state.clone()).await?,
         user_defined::bind(state.clone()).await?,
@@ -112,14 +113,14 @@ async fn main() -> anyhow::Result<()> {
     let twitch = tokio::task::spawn({
         let state = state.clone();
         // TODO this should retry and reconnect
-        twitch::create_bot(state, callables.clone())
+        shook_twitch::create_bot(state, callables.clone())
     });
 
     log::debug!("starting discord bot");
     let discord = tokio::task::spawn({
         let state = state.clone();
         // TODO what are the error states for this?
-        twilight::create_bot(state, callables)
+        shook_twilight::create_bot(state, callables)
     });
 
     log::debug!("waiting for both bots to finish");
@@ -128,3 +129,5 @@ async fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+include!(concat!(env!("OUT_DIR"), "/", "version.rs"));

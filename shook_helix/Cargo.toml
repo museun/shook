@@ -1,0 +1,12 @@
+[package]
+name = "shook_helix"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.61"
+reqwest = { version = "0.11.11", features = ["json"] }
+serde = { version = "1.0.143", features = ["derive"] }
+time = { version = "0.3.13", features = ["parsing", "formatting", "local-offset"] }
+
+shook_core = { path = "../shook_core" }
