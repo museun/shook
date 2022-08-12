@@ -1,9 +1,10 @@
 [workspace]
 members = [
     "shook",
+    "shook_config",
     "shook_core",
-    "shook_twitch",
-    "shook_twilight",
     "shook_helix",
-    "shook_local"
+    "shook_local",
+    "shook_twilight",
+    "shook_twitch",
 ]

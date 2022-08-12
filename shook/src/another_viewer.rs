@@ -3,7 +3,8 @@ use std::time::Duration;
 use fastrand_ext::IterExt;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use shook_core::{config::Secret, prelude::*};
+use shook_config::Secret;
+use shook_core::prelude::*;
 use shook_helix::EmoteMap;
 use tokio::{sync::Mutex, time::Instant};
 

@@ -10,3 +10,4 @@ serde = { version = "1.0.143", features = ["derive"] }
 time = { version = "0.3.13", features = ["parsing", "formatting", "local-offset"] }
 
 shook_core = { path = "../shook_core" }
+shook_config = { path = "../shook_config" }

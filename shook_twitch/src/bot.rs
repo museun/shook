@@ -1,5 +1,4 @@
 use shook_core::{
-    message::MessageKind,
     prelude::{GlobalState, Message, RenderFlavor, Response, SharedCallable},
     render::dispatch_and_render,
 };
@@ -35,11 +34,7 @@ impl<const N: usize> Bot<N> {
     async fn dispatch(&mut self, msg: Privmsg) -> anyhow::Result<()> {
         log::debug!(target:"shook::twitch","[{}] {}: {}", msg.target, msg.user, msg.data);
 
-        let msg = Message::new(
-            TwitchMessage::from_pm(msg),
-            MessageKind::Twitch,
-            self.state.clone(),
-        );
+        let msg = Message::new(TwitchMessage::from_pm(msg), self.state.clone());
 
         let sender = msg.sender_name();
         let channel = msg.source();

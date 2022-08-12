@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use shook_core::{
-    message::MessageKind,
     prelude::{GlobalState, Message, SharedCallable},
     render::{dispatch_and_render, RenderFlavor, Response},
 };
@@ -48,7 +47,6 @@ async fn handle<const N: usize>(
                 target: Arc::clone(&channel),
                 data: line.into(),
             }),
-            MessageKind::Twitch,
             state.clone(),
         );
 

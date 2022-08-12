@@ -14,3 +14,4 @@ twilight-http = "0.12.2"
 twilight-model = "0.12.3"
 
 shook_core = { path = "../shook_core" }
+shook_config = { path = "../shook_config" }

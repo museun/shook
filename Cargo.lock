@@ -1517,6 +1517,7 @@ dependencies = [
  "rspotify",
  "serde",
  "serde_json",
+ "shook_config",
  "shook_core",
  "shook_helix",
  "shook_twilight",
@@ -1530,6 +1531,15 @@ dependencies = [
  "twilight-model",
  "url",
  "what_theme",
+]
+
+[[package]]
+name = "shook_config"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "log",
+ "serde",
 ]
 
 [[package]]
@@ -1555,6 +1565,7 @@ dependencies = [
  "anyhow",
  "reqwest",
  "serde",
+ "shook_config",
  "shook_core",
  "time 0.3.13",
 ]
@@ -1578,6 +1589,7 @@ dependencies = [
  "anyhow",
  "log",
  "serde",
+ "shook_config",
  "shook_core",
  "tokio",
  "tokio-stream",
@@ -1593,6 +1605,7 @@ dependencies = [
  "anyhow",
  "log",
  "serde",
+ "shook_config",
  "shook_core",
  "tokio",
 ]

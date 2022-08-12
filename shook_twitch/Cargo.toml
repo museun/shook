@@ -10,3 +10,4 @@ serde = { version = "1.0.143", features = ["derive"] }
 tokio = { version = "1.20.1", features = ["net", "io-util", "rt"] }
 
 shook_core = { path = "../shook_core" }
+shook_config = { path = "../shook_config" }

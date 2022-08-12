@@ -1,4 +1,4 @@
-use shook_core::config::{load_from_env, LoadFromEnv, Secret};
+use shook_config::{load_from_env, LoadFromEnv, Secret};
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Spotify {

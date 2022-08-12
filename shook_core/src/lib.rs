@@ -5,7 +5,6 @@ pub mod help;
 
 pub mod args;
 pub mod callable;
-pub mod config;
 
 pub mod message;
 pub mod queue;

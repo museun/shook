@@ -13,7 +13,6 @@ use twilight_model::{
 
 use shook_core::{
     callable::SharedCallable,
-    message::MessageKind,
     prelude::GlobalState,
     render::{dispatch_and_render, RenderFlavor},
 };
@@ -92,11 +91,7 @@ impl<const N: usize> Bot<N> {
 
         let source = get_channel_name(&self.client, ch).await?;
 
-        let msg = ShookMessage::new(
-            TwilightMessage { inner: msg, source },
-            MessageKind::Discord,
-            self.state.clone(),
-        );
+        let msg = ShookMessage::new(TwilightMessage { inner: msg, source }, self.state.clone());
         for resp in dispatch_and_render(&self.handlers, &msg, RenderFlavor::Discord).await {
             match resp {
                 Response::Say(resp) => {

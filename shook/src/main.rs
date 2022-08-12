@@ -17,7 +17,7 @@ mod config;
 mod local;
 
 fn load_config(state: &mut State) -> anyhow::Result<()> {
-    use shook_core::config::*;
+    use shook_config::*;
     fn load<F: LoadFromEnv + Send + Sync + 'static>(state: &mut State) -> anyhow::Result<()> {
         F::load_from_env().map(|config| state.insert(config))
     }

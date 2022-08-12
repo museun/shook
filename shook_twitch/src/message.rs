@@ -29,6 +29,14 @@ impl Message {
     pub fn tags(&self) -> &Tags {
         &self.tags
     }
+
+    fn badge_iter(&self) -> impl Iterator<Item = (&str, &str)> + '_ {
+        self.tags
+            .get("badges")
+            .into_iter()
+            .flat_map(|s| s.split(','))
+            .flat_map(|s| s.split_once('/'))
+    }
 }
 
 impl MessageType for Message {
@@ -41,7 +49,17 @@ impl MessageType for Message {
     }
 
     fn source(&self) -> &str {
-        &&self.target
+        &self.target
+    }
+
+    fn is_from_admin(&self) -> bool {
+        self.badge_iter()
+            .any(|(key, val)| key == "broadcaster" && val == "1")
+    }
+
+    fn is_from_moderator(&self) -> bool {
+        self.badge_iter()
+            .any(|(key, val)| key == "moderator" && val == "1")
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
