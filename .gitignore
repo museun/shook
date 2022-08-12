@@ -7,3 +7,4 @@ default_help.*
 !default_help.yaml
 user_defined.*
 !user_defined.rs
+list.csv

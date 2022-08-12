@@ -7,4 +7,5 @@ members = [
     "shook_local",
     "shook_twilight",
     "shook_twitch",
+    "shook_what_song"
 ]

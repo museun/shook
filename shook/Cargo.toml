@@ -2,6 +2,8 @@
 name = "shook"
 version = "0.1.0"
 edition = "2021"
+
+default-run = "shook"
 build = "build.rs"
 
 [dependencies]
