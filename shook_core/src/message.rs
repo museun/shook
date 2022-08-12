@@ -1,10 +1,10 @@
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
 use crate::{args::Arguments, state::GlobalState};
 
 pub trait MessageType
 where
-    Self: Any + Send + Sync + 'static,
+    Self: Send + Sync + 'static,
 {
     fn data(&self) -> &str;
     fn sender_name(&self) -> &str;
@@ -15,7 +15,6 @@ where
     fn is_from_moderator(&self) -> bool {
         false
     }
-    fn as_any(&self) -> &dyn Any;
 }
 
 #[derive(Clone)]

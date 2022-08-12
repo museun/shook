@@ -61,8 +61,4 @@ impl MessageType for Message {
         self.badge_iter()
             .any(|(key, val)| key == "moderator" && val == "1")
     }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
 }

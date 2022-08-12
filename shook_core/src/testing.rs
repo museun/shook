@@ -205,8 +205,4 @@ impl MessageType for MockMessage {
     fn source(&self) -> &str {
         &self.source
     }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
 }
