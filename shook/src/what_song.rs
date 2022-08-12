@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
+use crate::queue::Queue;
 use anyhow::Context;
 use rspotify::{
     model::{CurrentlyPlayingType, PlayableItem, TrackId},
     prelude::{Id, OAuthClient},
     AuthCodeSpotify, Credentials, OAuth,
 };
-use shook_core::{prelude::*, queue::Queue, IterExt};
+use shook_core::{prelude::*, IterExt};
 use shook_helix::HelixClient;
 use tokio::sync::Mutex;
 

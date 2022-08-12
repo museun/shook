@@ -5,6 +5,7 @@ pub struct Queue<T> {
     queue: VecDeque<T>,
 }
 
+#[allow(dead_code)]
 impl<T> Queue<T> {
     pub fn with_capacity(limit: usize) -> Self {
         Self {

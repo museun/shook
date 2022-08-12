@@ -16,6 +16,8 @@ mod what_song;
 mod config;
 mod local;
 
+mod queue;
+
 fn load_config(state: &mut State) -> anyhow::Result<()> {
     use shook_config::*;
     fn load<F: LoadFromEnv + Send + Sync + 'static>(state: &mut State) -> anyhow::Result<()> {
