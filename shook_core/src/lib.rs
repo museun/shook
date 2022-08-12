@@ -14,7 +14,7 @@ pub use format::{FormatTime, IterExt};
 mod state;
 
 // #[cfg(test)]
-// pub mod testing;
+pub mod testing;
 
 type BoxedFuture<'a, T> = Pin<Box<dyn Future<Output = T> + 'a + Send>>;
 

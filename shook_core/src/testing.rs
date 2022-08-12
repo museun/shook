@@ -4,12 +4,10 @@ use persist::{tokio::PersistExt, yaml::Yaml};
 
 use crate::{
     callable::CallableFn,
-    // discord::Message as DiscordMessage,
     help::Registry,
-    message::MessageKind,
+    message::MessageType,
     prelude::{GlobalState, Message, SharedCallable, State},
     render::{BoxedRender, Render, RenderFlavor, Response},
-    twitch::{Message as TwitchMessage, Privmsg, Tags},
     BoxedFuture,
 };
 
@@ -48,9 +46,8 @@ where
             channel: Cow::from("#test_chanenl"),
             sender: Cow::from("test_user"),
             state,
-            mod_: false,
+            moderator: false,
             admin: false,
-            tags: Tags::default(),
         }
     }
 }
@@ -61,36 +58,17 @@ pub struct TestBinding {
     channel: Cow<'static, str>,
     sender: Cow<'static, str>,
     state: GlobalState,
-    mod_: bool,
+    moderator: bool,
     admin: bool,
-    tags: Tags,
 }
 
 impl TestBinding {
-    fn insert_badge(&mut self, key: &str, val: &str) {
-        use std::fmt::Write as _;
-
-        use std::collections::hash_map::Entry::*;
-        match self.tags.map.entry(Box::from("badges")) {
-            Occupied(mut e) => {
-                let mut s = e.get().to_string();
-                let _ = write!(&mut s, ",{key}/{val}");
-                *e.get_mut() = s.into_boxed_str();
-            }
-            Vacant(e) => {
-                e.insert(format!("{key}/{val}").into_boxed_str());
-            }
-        }
-    }
-
     pub fn with_moderator(mut self) -> Self {
-        self.insert_badge("moderator", "1");
-        self.mod_ = true;
+        self.moderator = true;
         self
     }
 
     pub fn with_admin(mut self) -> Self {
-        self.insert_badge("broadcaster", "1");
         self.admin = true;
         self
     }
@@ -109,35 +87,127 @@ impl TestBinding {
         std::mem::take(&mut self.responses)
     }
 
-    pub async fn send_twitch_message(&mut self, data: &str) {
-        let msg = Message::new(
-            TwitchMessage::from_pm(Privmsg {
-                tags: self.tags.clone(),
-                user: self.sender.clone().into(),
-                target: self.channel.clone().into(),
-                data: data.into(),
-            }),
-            MessageKind::Twitch,
-            self.state.clone(),
-        );
-        self.send_message(msg).await
-    }
+    pub async fn send_message(&mut self, data: &str, builder: impl BuildTestMessage) {
+        let mut builder = builder
+            .with_data(data)
+            .with_channel(&self.channel)
+            .with_sender(&self.sender);
 
-    // pub async fn send_discord_message(&mut self, data: &str) {
-    //     let msg = Message::new(
-    //         DiscordMessage::mock(&self.sender, 42, data),
-    //         MessageKind::Discord,
-    //         self.state.clone(),
-    //     );
-    //     self.send_message(msg).await
-    // }
+        if self.admin {
+            builder = builder.with_admin()
+        }
+        if self.moderator {
+            builder = builder.with_moderator()
+        }
 
-    async fn send_message(&mut self, msg: Message) {
-        let flavor = match msg.kind() {
-            MessageKind::Twitch => RenderFlavor::Twitch,
-            MessageKind::Discord => RenderFlavor::Discord,
-        };
+        let flavor = builder.render_flavor();
+        let msg = Message::new(builder.into_message(), self.state.clone());
         let out = self.callable.call(msg).await.render(flavor);
         self.responses.extend(out);
+    }
+}
+
+pub trait BuildTestMessage
+where
+    Self: Sized,
+{
+    type Output: MessageType;
+    fn into_message(self) -> Self::Output;
+
+    fn with_admin(self) -> Self {
+        self
+    }
+
+    fn with_moderator(self) -> Self {
+        self
+    }
+
+    fn with_sender(self, _: &str) -> Self {
+        self
+    }
+
+    fn with_channel(self, _: &str) -> Self {
+        self
+    }
+
+    fn with_data(self, _: &str) -> Self {
+        self
+    }
+
+    fn with_flavor(self, _: RenderFlavor) -> Self {
+        self
+    }
+
+    fn render_flavor(&self) -> RenderFlavor {
+        RenderFlavor::Twitch
+    }
+}
+
+pub struct MockMessage {
+    source: String,
+    sender: String,
+    data: String,
+    admin: bool,
+    moderator: bool,
+    flavor: RenderFlavor,
+}
+
+impl BuildTestMessage for MockMessage {
+    type Output = Self;
+
+    fn into_message(self) -> Self::Output {
+        self
+    }
+
+    fn with_admin(mut self) -> Self {
+        self.admin = !self.admin;
+        self
+    }
+
+    fn with_moderator(mut self) -> Self {
+        self.moderator = !self.moderator;
+        self
+    }
+
+    fn with_sender(mut self, sender: &str) -> Self {
+        self.sender = sender.into();
+        self
+    }
+
+    fn with_channel(mut self, channel: &str) -> Self {
+        self.source = channel.into();
+        self
+    }
+
+    fn with_data(mut self, data: &str) -> Self {
+        self.data = data.into();
+        self
+    }
+
+    fn with_flavor(mut self, flavor: RenderFlavor) -> Self {
+        self.flavor = flavor;
+        self
+    }
+
+    fn render_flavor(&self) -> RenderFlavor {
+        self.flavor
+    }
+}
+
+impl MessageType for MockMessage {
+    fn data(&self) -> &str {
+        &self.data
+    }
+
+    fn sender_name(&self) -> &str {
+        &self.sender
+    }
+
+    fn source(&self) -> &str {
+        &self.source
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }

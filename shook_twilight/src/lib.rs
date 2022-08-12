@@ -4,6 +4,7 @@ use anyhow::Context;
 
 use tokio_stream::StreamExt as _;
 use twilight_gateway::{Intents, Shard};
+
 use twilight_http::{request::channel::message::create_message::CreateMessage, Client};
 use twilight_model::{
     channel::message::MessageType,
@@ -17,7 +18,10 @@ use shook_core::{
     render::{dispatch_and_render, RenderFlavor},
 };
 
+use crate::message::TwilightMessage;
+
 pub mod config;
+mod message;
 mod state;
 
 pub async fn create_bot<const N: usize>(
@@ -119,37 +123,6 @@ impl<const N: usize> Bot<N> {
         let msg = self.client.create_message(ch).content(data).map(map)?;
         let _ = msg.exec().await;
         Ok(())
-    }
-}
-
-struct TwilightMessage {
-    inner: Message,
-    source: String,
-}
-
-impl std::ops::Deref for TwilightMessage {
-    type Target = Message;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl shook_core::message::MessageType for TwilightMessage {
-    fn data(&self) -> &str {
-        &self.content
-    }
-
-    fn sender_name(&self) -> &str {
-        &self.author.name
-    }
-
-    fn source(&self) -> &str {
-        &self.source
-    }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
     }
 }
 
