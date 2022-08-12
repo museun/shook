@@ -7,6 +7,7 @@ use shook::{
 
 use persist::{tokio::PersistExt, yaml::Yaml};
 
+#[allow(dead_code)]
 mod another_viewer;
 mod builtin;
 mod crates;
@@ -17,7 +18,7 @@ mod what_song;
 fn load_config(state: &mut State) -> anyhow::Result<()> {
     use shook::config::*;
     fn load<F: LoadFromEnv + Send + Sync + 'static>(state: &mut State) -> anyhow::Result<()> {
-        Ok(state.insert(F::load_from_env()?))
+        F::load_from_env().map(|config| state.insert(config))
     }
     macro_rules! load {
         ($($ty:ty)*) => {
@@ -39,7 +40,7 @@ fn load_config(state: &mut State) -> anyhow::Result<()> {
 }
 
 async fn load_help(state: &mut State) -> anyhow::Result<()> {
-    let registry = Registry::load_from_file::<Yaml>(&"default_help").await?;
+    let registry = Registry::load_from_file::<Yaml>("default_help").await?;
     state.insert(registry);
     Ok(())
 }

@@ -113,7 +113,7 @@ pub struct UserDefined {
 
 impl UserDefined {
     async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-        let uds = UserDefinedState::load_from_file::<Json>(&"user_defined")
+        let uds = UserDefinedState::load_from_file::<Json>("user_defined")
             .await
             .unwrap_or_default();
 
@@ -164,7 +164,7 @@ impl UserDefined {
         anyhow::ensure!(!body.is_empty(), "the command body cannot be empty");
 
         let mut state = self.state.lock().await;
-        if !state.update(&name, |cmd| cmd.body = body.to_string()) {
+        if !state.update(name, |cmd| cmd.body = body.to_string()) {
             return Ok(Simple {
                 twitch: format!("{name} doesn't exists"),
                 discord: format!("`{name}` doesn't exists"),
@@ -185,7 +185,7 @@ impl UserDefined {
         let name = Self::validate_command(&msg.args()["name"])?;
 
         let mut state = self.state.lock().await;
-        if !state.remove(&name) {
+        if !state.remove(name) {
             return Ok(Simple {
                 twitch: format!("{name} wasn't found"),
                 discord: format!("`{name}` wasn't found"),
@@ -207,14 +207,14 @@ impl UserDefined {
         let to = Self::validate_command(&msg.args()["to"])?;
 
         let mut state = self.state.lock().await;
-        if !state.has(&from) {
+        if !state.has(from) {
             return Ok(Simple {
                 twitch: format!("{from} was not found"),
                 discord: format!("`{from}` was not found"),
             });
         }
 
-        if !state.alias(&from, &to) {
+        if !state.alias(from, to) {
             return Ok(Simple {
                 twitch: format!("{to} already exists"),
                 discord: format!("`{to}` already exists"),
@@ -264,7 +264,7 @@ impl UserDefined {
     }
 
     async fn sync(state: &UserDefinedState) -> anyhow::Result<()> {
-        Ok(state.save_to_file::<JsonPretty>(&"user_defined").await?)
+        Ok(state.save_to_file::<JsonPretty>("user_defined").await?)
     }
 
     fn validate_command(name: &str) -> anyhow::Result<&str> {

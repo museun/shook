@@ -34,7 +34,7 @@ where
     }
 
     async fn mock_with_state(self, mut state: State) -> TestBinding {
-        let registry = Registry::load_from_file::<Yaml>(&"default_help")
+        let registry = Registry::load_from_file::<Yaml>("default_help")
             .await
             .unwrap();
         state.insert(registry);

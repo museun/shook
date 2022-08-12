@@ -108,7 +108,7 @@ impl Spotify {
             let twitch = state.get_owned::<HelixClient>().await;
             let spotify = spotify.clone();
             let streamer = state.get_owned::<Streamer>().await;
-            async move { Self::update_loop(queue, twitch, spotify, streamer) }
+            Self::update_loop(queue, twitch, spotify, streamer)
         });
 
         Ok(Self { spotify, queue })
