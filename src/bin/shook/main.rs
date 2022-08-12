@@ -1,8 +1,7 @@
 use shook::{
-    discord,
     help::Registry,
     prelude::{GlobalState, State, Streamer},
-    twitch,
+    twilight, twitch,
 };
 
 use persist::{tokio::PersistExt, yaml::Yaml};
@@ -120,7 +119,7 @@ async fn main() -> anyhow::Result<()> {
     let discord = tokio::task::spawn({
         let state = state.clone();
         // TODO what are the error states for this?
-        discord::create_bot(state, callables)
+        twilight::create_bot(state, callables)
     });
 
     log::debug!("waiting for both bots to finish");

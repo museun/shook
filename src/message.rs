@@ -21,7 +21,7 @@ macro_rules! message {
 
 message! {
     crate::twitch::Message
-    crate::discord::Message
+    // crate::discord::Message
 }
 
 pub trait MessageType
@@ -113,7 +113,7 @@ impl Message {
         self.inner.as_any().downcast_ref()
     }
 
-    pub fn as_discord(&self) -> Option<&crate::discord::Message> {
+    pub fn as_discord(&self) -> Option<&twilight_model::channel::message::Message> {
         self.inner.as_any().downcast_ref()
     }
 

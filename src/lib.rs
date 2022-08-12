@@ -6,11 +6,12 @@ pub mod help;
 pub mod args;
 pub mod callable;
 pub mod config;
-pub mod discord;
+// pub mod discord;
 pub mod helix;
 pub mod message;
 pub mod queue;
 pub mod render;
+pub mod twilight;
 pub mod twitch;
 
 mod format;

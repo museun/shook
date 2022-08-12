@@ -4,6 +4,12 @@ use anyhow::Context;
 #[serde(transparent)]
 pub struct Secret<T>(pub T);
 
+impl<T> Secret<T> {
+    pub fn into_inner(self) -> T {
+        self.0
+    }
+}
+
 impl From<String> for Secret<String> {
     fn from(s: String) -> Self {
         Self(s)

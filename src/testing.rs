@@ -4,7 +4,7 @@ use persist::{tokio::PersistExt, yaml::Yaml};
 
 use crate::{
     callable::CallableFn,
-    discord::Message as DiscordMessage,
+    // discord::Message as DiscordMessage,
     help::Registry,
     message::MessageKind,
     prelude::{GlobalState, Message, SharedCallable, State},
@@ -123,14 +123,14 @@ impl TestBinding {
         self.send_message(msg).await
     }
 
-    pub async fn send_discord_message(&mut self, data: &str) {
-        let msg = Message::new(
-            DiscordMessage::mock(&self.sender, 42, data),
-            MessageKind::Discord,
-            self.state.clone(),
-        );
-        self.send_message(msg).await
-    }
+    // pub async fn send_discord_message(&mut self, data: &str) {
+    //     let msg = Message::new(
+    //         DiscordMessage::mock(&self.sender, 42, data),
+    //         MessageKind::Discord,
+    //         self.state.clone(),
+    //     );
+    //     self.send_message(msg).await
+    // }
 
     async fn send_message(&mut self, msg: Message) {
         let flavor = match msg.kind() {
