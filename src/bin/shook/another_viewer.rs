@@ -20,25 +20,19 @@ struct AnotherViewer {
 
 impl AnotherViewer {
     async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
+        let config: shook::config::AnotherViewer = state.get_owned().await;
+
         let this = Self {
             last: Mutex::new(Instant::now()),
-            emote_map: state.get::<EmoteMap>().await.clone(),
+            emote_map: state.get_owned().await,
             client: reqwest::Client::new(),
-            key: state
-                .get::<shook::config::AnotherViewer>()
-                .await
-                .bearer_token
-                .clone(),
-            remote: state
-                .get::<shook::config::AnotherViewer>()
-                .await
-                .remote
-                .clone(),
+            key: config.bearer_token,
+            remote: config.remote,
         };
 
         let reg = state.get().await;
         Ok(Binding::create(&reg, this)
-            .bind("another_viewer::speak", Self::speak)
+            .bind(Self::speak)
             .listen(Self::listen)
             .into_callable())
     }

@@ -9,7 +9,7 @@ builtin:
   usage: <channel?>
   description: retrieves a stream's current uptime
 
-- command: '!bot-uptime'
+- command: '!bot_uptime'
   description: retrieves the bot's current uptime
 
 - command: '!time'

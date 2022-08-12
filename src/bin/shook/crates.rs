@@ -106,7 +106,7 @@ pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
     let registry = state.get().await;
 
     Ok(Group::new(&registry)
-        .bind("crates::crate", lookup)
+        .bind(cmd!(crates::crate), lookup)
         .into_callable())
 }
 

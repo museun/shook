@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use anyhow::Context;
 use rspotify::{
@@ -6,7 +6,7 @@ use rspotify::{
     prelude::{Id, OAuthClient},
     AuthCodeSpotify, Credentials, OAuth,
 };
-use shook::{prelude::*, queue::Queue, IterExt};
+use shook::{helix::HelixClient, prelude::*, queue::Queue, IterExt};
 use tokio::sync::Mutex;
 
 pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
@@ -18,8 +18,6 @@ struct Song {
     id: TrackId,
     name: String,
     artists: String,
-    duration: Duration,
-    progress: Duration,
 }
 
 #[derive(Clone)]
@@ -86,8 +84,6 @@ impl SpotifyClient {
             id,
             name: track.name,
             artists: artists.join_with(','),
-            duration: track.duration,
-            progress: song.progress?,
         })
     }
 }
@@ -106,14 +102,19 @@ impl Spotify {
             SpotifyClient::new(&config.client_id, &config.client_secret).await?
         };
         let queue = Arc::new(Mutex::new(Queue::with_capacity(Self::HISTORY_LIMIT)));
+
+        tokio::spawn({
+            let queue = queue.clone();
+            let twitch = state.get_owned::<HelixClient>().await;
+            let spotify = spotify.clone();
+            let streamer = state.get_owned::<Streamer>().await;
+            async move { Self::update_loop(queue, twitch, spotify, streamer) }
+        });
+
         Ok(Self { spotify, queue })
     }
 
     async fn current(&self) -> impl Render {
-        if let Some(song) = self.queue.lock().await.last() {
-            return Ok(Self::format_song(song));
-        }
-
         if let Some(song) = self.spotify.try_get_song().await {
             let out = Self::format_song(&song);
             self.queue.lock().await.push(song);
@@ -227,27 +228,27 @@ impl WhatSong {
 
         let reg = state.get().await;
         Ok(Binding::create(&reg, this)
-            .bind("what_song::current", Self::current)
-            .bind("what_song::previous", Self::previous)
-            .bind("what_song::swap", Self::swap)
+            .bind(Self::current)
+            .bind(Self::previous)
+            .bind(Self::swap)
             .into_callable())
     }
 
-    async fn current(self: Arc<Self>, msg: Message) -> impl Render {
+    async fn current(self: Arc<Self>, _: Message) -> impl Render {
         let mode = self.mode.lock().await;
         match &*mode {
             Mode::Spotify => self.spotify.current().await.boxed(),
             Mode::Youtube => self.youtube.current().await.boxed(),
-            Mode::None => "no song is playing".boxed(),
+            Mode::None => "I don't know".boxed(),
         }
     }
 
-    async fn previous(self: Arc<Self>, msg: Message) -> impl Render {
+    async fn previous(self: Arc<Self>, _: Message) -> impl Render {
         let mode = self.mode.lock().await;
         match &*mode {
             Mode::Spotify => self.spotify.previous().await.boxed(),
             Mode::Youtube => self.youtube.previous().await.boxed(),
-            Mode::None => "no song is playing".boxed(),
+            Mode::None => "I don't know".boxed(),
         }
     }
 

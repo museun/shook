@@ -12,7 +12,7 @@ pub async fn create_bot<const N: usize>(
     state: GlobalState,
     callables: [SharedCallable; N],
 ) -> anyhow::Result<()> {
-    let config = state.get::<crate::config::Discord>().await.clone();
+    let config: crate::config::Discord = state.get_owned().await;
 
     log::info!("connecting to discord");
     let mut client = Client::builder(

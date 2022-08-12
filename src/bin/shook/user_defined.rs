@@ -1,10 +1,10 @@
+use persist::{
+    json::{Json, JsonPretty},
+    tokio::PersistExt,
+};
 use std::collections::HashMap;
 
-use shook::{
-    help::Registry,
-    persist::{PersistExt, Ron},
-    prelude::*,
-};
+use shook::{help::Registry, prelude::*};
 use tokio::sync::Mutex;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, PartialOrd, Eq, Ord)]
@@ -113,7 +113,7 @@ pub struct UserDefined {
 
 impl UserDefined {
     async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-        let uds = UserDefinedState::load_from_file::<Ron>(&"user_defined")
+        let uds = UserDefinedState::load_from_file::<Json>(&"user_defined")
             .await
             .unwrap_or_default();
 
@@ -123,11 +123,11 @@ impl UserDefined {
 
         let reg = state.get::<Registry>().await;
         Ok(Binding::create(&reg, this)
-            .bind("user_defined::add", Self::add)
-            .bind("user_defined::update", Self::update)
-            .bind("user_defined::remove", Self::remove)
-            .bind("user_defined::alias", Self::alias)
-            .bind("user_defined::commands", Self::commands)
+            .bind(Self::add)
+            .bind(Self::update)
+            .bind(Self::remove)
+            .bind(Self::alias)
+            .bind(Self::commands)
             .listen(Self::lookup)
             .into_callable())
     }
@@ -229,7 +229,7 @@ impl UserDefined {
         })
     }
 
-    async fn commands(self: Arc<Self>, msg: Message) -> impl Render {
+    async fn commands(self: Arc<Self>, _: Message) -> impl Render {
         let state = self.state.lock().await;
         let (mut resp, line) = state.get_all().map(|c| &*c.name).enumerate().fold(
             (Response::builder(), String::new()),
@@ -264,7 +264,7 @@ impl UserDefined {
     }
 
     async fn sync(state: &UserDefinedState) -> anyhow::Result<()> {
-        state.save_to_file::<Ron>(&"user_defined").await
+        Ok(state.save_to_file::<JsonPretty>(&"user_defined").await?)
     }
 
     fn validate_command(name: &str) -> anyhow::Result<&str> {

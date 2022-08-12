@@ -1,10 +1,11 @@
 use shook::{
     discord,
     help::Registry,
-    persist::{PersistExt, Yaml},
     prelude::{GlobalState, State, Streamer},
     twitch,
 };
+
+use persist::{tokio::PersistExt, yaml::Yaml};
 
 mod another_viewer;
 mod builtin;
@@ -102,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
     ];
 
     log::debug!("starting local bot");
-    let discord = tokio::task::spawn({
+    let local = tokio::task::spawn({
         let state = state.clone();
         local::create_bot(state, callables.clone())
     });
@@ -123,7 +124,7 @@ async fn main() -> anyhow::Result<()> {
 
     log::debug!("waiting for both bots to finish");
     // TODO not this
-    let _ = tokio::join!(twitch, discord);
+    let _ = tokio::join!(twitch, discord, local);
 
     Ok(())
 }

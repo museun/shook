@@ -4,6 +4,6 @@ shook_local/target
 *.json
 *.yml
 default_help.*
-!default_help.yml
+!default_help.yaml
 user_defined.*
 !user_defined.rs

@@ -102,7 +102,7 @@ impl Message {
     }
 
     pub async fn streamer_name(&self) -> String {
-        self.state.get::<crate::prelude::Streamer>().await.0.clone()
+        self.state.get_owned::<crate::prelude::Streamer>().await.0
     }
 
     pub async fn is_from_owner(&self) -> bool {

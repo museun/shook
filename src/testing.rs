@@ -1,11 +1,12 @@
 use std::{borrow::Cow, future::Future, sync::Arc};
 
+use persist::{tokio::PersistExt, yaml::Yaml};
+
 use crate::{
     callable::CallableFn,
     discord::Message as DiscordMessage,
     help::Registry,
     message::MessageKind,
-    persist::{PersistExt, Yaml},
     prelude::{GlobalState, Message, SharedCallable, State},
     render::{BoxedRender, Render, RenderFlavor, Response},
     twitch::{Message as TwitchMessage, Privmsg, Tags},

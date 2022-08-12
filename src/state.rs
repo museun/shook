@@ -14,6 +14,14 @@ impl GlobalState {
         Self(Arc::new(RwLock::new(state)))
     }
 
+    pub async fn get_owned<T>(&self) -> T
+    where
+        T: Any + Send + Sync + 'static,
+        T: Clone,
+    {
+        (&*self.get::<T>().await).clone()
+    }
+
     pub async fn get<T>(&self) -> RwLockReadGuard<'_, T>
     where
         T: Any + Send + Sync + 'static,

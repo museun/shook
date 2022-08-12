@@ -1,13 +1,14 @@
 use std::{future::Future, pin::Pin};
 
+#[macro_use]
+pub mod help;
+
 pub mod args;
 pub mod callable;
 pub mod config;
 pub mod discord;
 pub mod helix;
-pub mod help;
 pub mod message;
-pub mod persist;
 pub mod queue;
 pub mod render;
 pub mod twitch;
@@ -31,6 +32,8 @@ pub mod prelude {
 
     #[derive(Clone, Debug)]
     pub struct Streamer(pub String);
+
+    pub use crate::cmd;
 
     pub use crate::callable::{self, Binding, Command, Group, IntoCallable, SharedCallable};
     pub use crate::help::Registry;

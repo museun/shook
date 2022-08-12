@@ -1,12 +1,7 @@
 use std::{collections::BTreeSet, time::SystemTime};
 
 use anyhow::Context;
-use shook::{
-    help::{Descriptions, Registry},
-    message,
-    prelude::*,
-    FormatTime,
-};
+use shook::{help::Descriptions, prelude::*, FormatTime};
 use tokio::time::Instant;
 
 pub struct Builtin(Instant);
@@ -19,19 +14,19 @@ impl Builtin {
     async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
         let registry = state.get().await;
         Ok(Binding::create(&registry, Self(Instant::now()))
-            .bind("builtin::theme", Self::theme)
-            .bind("builtin::font", Self::font)
-            .bind("builtin::uptime", Self::uptime)
-            .bind("builtin::bot-uptime", Self::bot_uptime)
-            .bind("builtin::time", Self::time)
-            .bind("builtin::hello", Self::hello)
-            .bind("builtin::help", Self::help)
-            .bind("builtin::version", Self::version)
+            .bind(Self::theme)
+            .bind(Self::font)
+            .bind(Self::uptime)
+            .bind(Self::bot_uptime)
+            .bind(Self::time)
+            .bind(Self::hello)
+            .bind(Self::help)
+            .bind(Self::version)
             .listen(Self::say_hello)
             .into_callable())
     }
 
-    async fn version(self: Arc<Self>, msg: Message) -> impl Render {
+    async fn version(self: Arc<Self>, _: Message) -> impl Render {
         Simple {
             twitch: format!(
                 "{} on branch '{}' (built on {})",

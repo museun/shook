@@ -3,6 +3,21 @@ use std::{future::Future, sync::Arc};
 use super::{Command, Dispatch, IntoCallable, SharedCallable};
 use crate::{help::Registry, prelude::Message, render::Render};
 
+fn command_name<A, B, C>(f: impl Fn(A, B) -> C + Copy) -> String {
+    fn ty<T>(_d: &T) -> &'static str {
+        std::any::type_name::<T>()
+    }
+    use heck::ToSnekCase as _;
+
+    let mut v = ty(&f)
+        .rsplitn(3, "::")
+        .take(2)
+        .map(|s| s.to_snek_case())
+        .collect::<Vec<_>>();
+    v.reverse();
+    v.join("::")
+}
+
 pub struct Binding<'a, T> {
     this: Arc<T>,
     callables: Vec<SharedCallable>,
@@ -35,13 +50,14 @@ where
         }
     }
 
-    pub fn bind<F, Fut>(self, id: &'static str, func: F) -> Self
+    pub fn bind<F, Fut>(self, func: F) -> Self
     where
         F: Fn(Arc<T>, Message) -> Fut + Copy + Send + Sync + 'static,
         Fut: Future + Send,
         Fut::Output: Render + Send + 'static,
     {
-        let cmd = self.registry.fetch(id);
+        let id = command_name(func);
+        let cmd = self.registry.fetch(&id);
         self.bind_cmd(cmd, func)
     }
 

@@ -16,7 +16,7 @@ pub async fn create_bot<const N: usize>(
     state: GlobalState,
     callables: [SharedCallable; N],
 ) -> anyhow::Result<()> {
-    let config = state.get::<crate::config::Irc>().await.clone();
+    let config: crate::config::Irc = state.get_owned().await;
 
     let reg = types::Registration {
         name: &config.name,
