@@ -32,7 +32,7 @@ impl<const N: usize> Bot<N> {
     }
 
     async fn dispatch(&mut self, msg: Privmsg) -> anyhow::Result<()> {
-        log::debug!(target:"shook::twitch","[{}] {}: {}", msg.target, msg.user, msg.data);
+        log::debug!("[{}] {}: {}", msg.target, msg.user, msg.data);
 
         let msg = Message::new(TwitchMessage::from_pm(msg), self.state.clone());
 

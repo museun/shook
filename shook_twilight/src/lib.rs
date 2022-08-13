@@ -67,7 +67,7 @@ pub async fn create_bot<const N: usize>(
                     })
                     .await?;
 
-                log::debug!(target: "shook::discord", "[{}] {}: {}", channel, msg.author.name, msg.content);
+                log::debug!("[{}] {}: {}", channel, msg.author.name, msg.content);
                 bot.handle(msg.0).await?;
             }
             twilight_gateway::Event::Ready(msg) => {
@@ -92,7 +92,6 @@ impl<const N: usize> Bot<N> {
         use shook_core::prelude::{Message as ShookMessage, Response};
 
         let (ch, id) = (msg.channel_id, msg.id);
-
         let source = get_channel_name(&self.client, ch).await?;
 
         let msg = ShookMessage::new(TwilightMessage { inner: msg, source }, self.state.clone());
@@ -128,12 +127,10 @@ impl<const N: usize> Bot<N> {
 
 async fn get_channel_name(client: &Client, id: Id<ChannelMarker>) -> anyhow::Result<String> {
     let resp = client.channel(id).exec().await?;
-
     let name = resp
         .model()
         .await?
         .name
         .with_context(|| "cannot find name for {id}")?;
-
     Ok(name)
 }

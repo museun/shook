@@ -69,17 +69,13 @@ impl Client {
             duration: String,
         }
 
+        const PARTS: (&str, &str) = ("part", "snippet,contentDetails");
         const FIELDS: (&str, &str) = (
             "fields",
             "items(id, snippet(title), contentDetails(duration))",
         );
 
-        let query = &&[
-            ("part", "snippet,contentDetails"),
-            FIELDS,
-            ("key", &*self.api_key),
-            ("id", id),
-        ];
+        let query = &[PARTS, FIELDS, ("key", &*self.api_key), ("id", id)];
 
         let mut resp: Response = self
             .client

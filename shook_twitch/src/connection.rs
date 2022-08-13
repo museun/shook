@@ -41,7 +41,7 @@ impl Connection {
     }
 
     pub async fn write_raw(&mut self, data: &str) -> anyhow::Result<()> {
-        log::trace!(target:"shook::twitch","-> {}", data.escape_debug());
+        log::trace!("-> {}", data.escape_debug());
         self.stream.write_all(data.as_bytes()).await?;
         if !data.ends_with('\n') {
             self.stream.write_all(b"\r\n").await?;
@@ -56,6 +56,7 @@ impl Connection {
 
             let n = self.stream.read_line(&mut self.buf).await?;
             let line = &self.buf[..n];
+            log::trace!("<- {}", line.escape_debug());
 
             let (tags, prefix, cmd, args, data) = parser::parse(line);
             let prefix = prefix.map(Arc::<str>::from);
@@ -93,6 +94,7 @@ impl Connection {
             }
 
             let mut raw = &buf[..n - 2];
+            log::trace!("<- {}", raw.escape_debug());
 
             let tags = raw
                 .starts_with('@')

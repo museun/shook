@@ -8,7 +8,10 @@ use persist::{tokio::PersistExt as _, yaml::Yaml};
 
 fn load_config(state: &mut State) -> anyhow::Result<()> {
     use shook_config::*;
-    fn load<F: LoadFromEnv + Send + Sync + 'static>(state: &mut State) -> anyhow::Result<()> {
+    fn load<F>(state: &mut State) -> anyhow::Result<()>
+    where
+        F: LoadFromEnv + Send + Sync + 'static,
+    {
         F::load_from_env().map(|config| state.insert(config))
     }
     macro_rules! load {
