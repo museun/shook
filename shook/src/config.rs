@@ -8,7 +8,7 @@ pub struct Spotify {
 
 impl LoadFromEnv for Spotify {
     fn load_from_env() -> anyhow::Result<Self> {
-        load_from_env(&[
+        load_from_env([
             ("SHAKEN_SPOTIFY_CLIENT_ID", |t, v| t.client_id = v),
             ("SHAKEN_SPOTIFY_CLIENT_SECRET", |t, v| {
                 t.client_secret = Secret(v)
@@ -25,7 +25,7 @@ pub struct AnotherViewer {
 
 impl LoadFromEnv for AnotherViewer {
     fn load_from_env() -> anyhow::Result<Self> {
-        load_from_env(&[
+        load_from_env([
             ("SHAKEN_BRAIN_REMOTE_URL", |t, v| t.remote = v),
             ("SHAKEN_BRAIN_GENERATE_TOKEN", |t, v| {
                 t.bearer_token = Secret(v)
@@ -41,6 +41,6 @@ pub struct Youtube {
 
 impl LoadFromEnv for Youtube {
     fn load_from_env() -> anyhow::Result<Self> {
-        load_from_env(&[("YOUTUBE_HISTORY_SERVER", |t, v| t.endpoint = v)])
+        load_from_env([("YOUTUBE_HISTORY_SERVER", |t, v| t.endpoint = v)])
     }
 }

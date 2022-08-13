@@ -7,7 +7,7 @@ pub struct Discord {
 
 impl LoadFromEnv for Discord {
     fn load_from_env() -> anyhow::Result<Self> {
-        load_from_env(&[("SHAKEN_DISCORD_OAUTH_TOKEN", |t, v| {
+        load_from_env([("SHAKEN_DISCORD_OAUTH_TOKEN", |t, v| {
             t.oauth_token = Secret(v)
         })])
     }

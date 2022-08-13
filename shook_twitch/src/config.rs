@@ -10,7 +10,7 @@ pub struct Irc {
 
 impl LoadFromEnv for Irc {
     fn load_from_env() -> anyhow::Result<Self> {
-        load_from_env(&[
+        load_from_env([
             ("SHAKEN_TWITCH_IRC_ADDRESS", |t, v| t.addr = v),
             ("SHAKEN_TWITCH_NAME", |t, v| t.name = v),
             ("SHAKEN_TWITCH_OAUTH_TOKEN", |t, v| t.pass = Secret(v)),

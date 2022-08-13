@@ -8,7 +8,7 @@ pub struct Twitch {
 
 impl LoadFromEnv for Twitch {
     fn load_from_env() -> anyhow::Result<Self> {
-        load_from_env(&[
+        load_from_env([
             ("SHAKEN_TWITCH_CLIENT_ID", |t, v| t.client_id = v),
             ("SHAKEN_TWITCH_CLIENT_SECRET", |t, v| {
                 t.client_secret = Secret(v)
