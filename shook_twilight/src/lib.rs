@@ -28,14 +28,12 @@ pub async fn create_bot<const N: usize>(
     state: GlobalState,
     handlers: [SharedCallable; N],
 ) -> anyhow::Result<()> {
-    let config: crate::config::Discord = state.get_owned().await;
+    let config: crate::config::Config = state.get_owned().await;
 
-    let client = Arc::new(twilight_http::Client::new(
-        config.oauth_token.clone().into_inner(),
-    ));
+    let client = Arc::new(twilight_http::Client::new(config.oauth_token.into_string()));
 
     let (shard, mut events) = Shard::new(
-        config.oauth_token.into_inner(),
+        config.oauth_token.into_string(),
         Intents::GUILDS | Intents::GUILD_MESSAGES | Intents::MESSAGE_CONTENT,
     );
     shard.start().await?;

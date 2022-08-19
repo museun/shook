@@ -106,9 +106,9 @@ pub struct Crates;
 impl Crates {
     pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
         state.insert(CratesClient::new()).await;
-        let registry = state.get().await;
 
-        Ok(Binding::create(&registry, Self)
+        Ok(Binding::create(state, Self)
+            .await
             .bind(Self::crates)
             .into_callable())
     }

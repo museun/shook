@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 
 #[derive(Clone)]
-pub struct Secret {
+pub struct Ephemeral {
     inner: Cow<'static, str>,
     key: Cow<'static, str>,
 }
 
-impl Secret {
+impl Ephemeral {
     pub fn key(key: &str) -> Self {
         Self {
             inner: Cow::default(),
@@ -22,34 +22,34 @@ impl Secret {
         &self.inner
     }
 
-    pub fn into_string(self) -> String {
+    pub fn into_string(&self) -> String {
         self.inner.to_string()
     }
 }
 
-impl AsRef<str> for Secret {
+impl AsRef<str> for Ephemeral {
     fn as_ref(&self) -> &str {
         &self.inner
     }
 }
 
-impl std::ops::Deref for Secret {
+impl std::ops::Deref for Ephemeral {
     type Target = str;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl std::fmt::Debug for Secret {
+impl std::fmt::Debug for Ephemeral {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Secret")
+        f.debug_struct("Ephemeral")
             .field("inner", &crate::redact(&self.inner))
             .field("key", &self.key)
             .finish()
     }
 }
 
-impl serde::Serialize for Secret {
+impl serde::Serialize for Ephemeral {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -58,7 +58,7 @@ impl serde::Serialize for Secret {
     }
 }
 
-impl<'de> serde::Deserialize<'de> for Secret {
+impl<'de> serde::Deserialize<'de> for Ephemeral {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -68,6 +68,7 @@ impl<'de> serde::Deserialize<'de> for Secret {
         let inner = std::env::var(&*key)
             .map_err(D::Error::custom)
             .map(Cow::from)?;
+        std::env::remove_var(&*key);
         Ok(Self { inner, key })
     }
 }

@@ -1,13 +1,26 @@
 use anyhow::Context;
+
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
+    path::PathBuf,
     sync::Arc,
 };
-use tokio::sync::{RwLock, RwLockMappedWriteGuard, RwLockReadGuard, RwLockWriteGuard};
+use tokio::sync::{RwLock, RwLockReadGuard};
+
+use crate::ConfigPath;
 
 #[derive(Default, Clone)]
 pub struct GlobalState(pub(crate) Arc<RwLock<State>>);
+
+impl GlobalState {
+    pub async fn get_config_path<C>(&self) -> PathBuf
+    where
+        C: ConfigPath + Any + Send + Sync,
+    {
+        self.get::<C>().await.file_path().to_path_buf()
+    }
+}
 
 impl GlobalState {
     pub fn new(state: State) -> Self {
@@ -45,40 +58,29 @@ impl GlobalState {
         RwLockReadGuard::try_map(self.0.read().await, |state| state.get::<T>().ok()).ok()
     }
 
-    pub async fn get_mut<T>(&self) -> RwLockMappedWriteGuard<'_, T>
-    where
-        T: Any + Send + Sync + 'static,
-    {
-        RwLockWriteGuard::map(self.0.write().await, |state| state.get_mut::<T>().unwrap())
-    }
-
-    pub async fn try_get_mut<T>(&self) -> Option<RwLockMappedWriteGuard<'_, T>>
-    where
-        T: Any + Send + Sync + 'static,
-    {
-        RwLockWriteGuard::try_map(self.0.write().await, |state| state.get_mut::<T>().ok()).ok()
-    }
-
     pub async fn insert<T>(&self, val: T)
     where
         T: Any + Send + Sync + 'static,
     {
         self.0.write().await.insert(val);
     }
-
-    pub async fn extract<T, U, F>(&self, map: F) -> RwLockReadGuard<'_, U>
-    where
-        T: Any + Send + Sync + 'static,
-        U: Send + 'static,
-        F: FnOnce(&T) -> &U + Send,
-    {
-        RwLockReadGuard::map(self.get::<T>().await, map)
-    }
 }
 
 #[derive(Default, Debug)]
 pub struct State {
     map: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
+}
+
+impl State {
+    pub fn get_config_path<C>(&self) -> PathBuf
+    where
+        C: ConfigPath + Any + Send + Sync,
+    {
+        self.get::<C>()
+            .expect("config path")
+            .file_path()
+            .to_path_buf()
+    }
 }
 
 impl State {
@@ -109,6 +111,15 @@ impl State {
             .get_mut(&TypeId::of::<T>())
             .and_then(|c| c.downcast_mut())
             .with_context(|| anyhow::anyhow!("could not find {}", Self::name_of::<T>()))
+    }
+
+    pub fn extract<T, U, F>(&self, map: F) -> anyhow::Result<U>
+    where
+        T: Any + Send + Sync + 'static,
+        U: 'static,
+        F: FnOnce(&T) -> U,
+    {
+        self.get::<T>().map(map)
     }
 
     fn name_of<T: 'static>() -> &'static str {

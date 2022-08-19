@@ -1,7 +1,11 @@
 use std::{future::Future, sync::Arc};
 
 use super::{Command, Dispatch, IntoCallable, SharedCallable};
-use crate::{help::Registry, prelude::Message, render::Render};
+use crate::{
+    prelude::{Message, SharedRegistry},
+    render::Render,
+    state::GlobalState,
+};
 
 fn command_name<A, B, C>(f: impl Fn(A, B) -> C + Copy) -> String {
     fn ty<T>(_d: &T) -> &'static str {
@@ -18,13 +22,13 @@ fn command_name<A, B, C>(f: impl Fn(A, B) -> C + Copy) -> String {
     v.join("::")
 }
 
-pub struct Binding<'a, T> {
+pub struct Binding<T> {
     this: Arc<T>,
     callables: Vec<SharedCallable>,
-    registry: &'a Registry,
+    registry: SharedRegistry,
 }
 
-impl<'a, T> IntoCallable for Binding<'a, T>
+impl<T> IntoCallable for Binding<T>
 where
     T: Send + Sync + 'static,
 {
@@ -38,15 +42,15 @@ where
     }
 }
 
-impl<'a, T> Binding<'a, T>
+impl<T> Binding<T>
 where
     T: Send + Sync + 'static,
 {
-    pub fn create(registry: &'a Registry, this: T) -> Self {
+    pub async fn create(state: GlobalState, this: T) -> Self {
         Self {
             this: Arc::new(this),
             callables: Vec::new(),
-            registry,
+            registry: state.get_owned().await,
         }
     }
 

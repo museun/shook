@@ -9,8 +9,8 @@ pub struct Builtin(Instant);
 
 impl Builtin {
     pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-        let registry = state.get().await;
-        Ok(Binding::create(&registry, Self(Instant::now()))
+        Ok(Binding::create(state, Self(Instant::now()))
+            .await
             .bind(Self::theme)
             .bind(Self::font)
             .bind(Self::uptime)
@@ -54,7 +54,7 @@ impl Builtin {
 
             // TODO list aliases
             Some(cmd) => {
-                let registry = msg.state().get::<Registry>().await;
+                let registry = msg.state().get::<SharedRegistry>().await;
                 match registry.find_command(cmd) {
                     Some(desc) => Ok(Simple {
                         twitch: format!(
@@ -73,7 +73,7 @@ impl Builtin {
                 }
             }
             None => {
-                let registry = msg.state().get::<Registry>().await;
+                let registry = msg.state().get::<SharedRegistry>().await;
                 let f = format_help_twitch(
                     &registry
                         .get_all_descriptions()

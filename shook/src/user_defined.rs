@@ -1,10 +1,6 @@
-use persist::{
-    json::{Json, JsonPretty},
-    tokio::PersistExt,
-};
 use std::collections::HashMap;
 
-use shook_core::{help::Registry, prelude::*};
+use shook_core::{prelude::*, PersistFromConfig};
 use tokio::sync::Mutex;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, PartialOrd, Eq, Ord)]
@@ -103,29 +99,36 @@ impl UserDefinedState {
     }
 }
 
+impl PersistFromConfig for UserDefinedState {
+    type ConfigPath = crate::config::UserDefined;
+}
+
 pub struct UserDefined {
-    state: Mutex<UserDefinedState>,
+    user_defined_state: Mutex<UserDefinedState>,
+    state: GlobalState,
 }
 
 impl UserDefined {
     pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-        let uds = UserDefinedState::load_from_file::<Json>("user_defined")
+        let user_defined_state = UserDefinedState::load_from_file(&state)
             .await
-            .unwrap_or_default();
+            .map(Mutex::new)?;
 
-        let this = Self {
-            state: Mutex::new(uds),
-        };
-
-        let reg = state.get::<Registry>().await;
-        Ok(Binding::create(&reg, this)
-            .bind(Self::add)
-            .bind(Self::update)
-            .bind(Self::remove)
-            .bind(Self::alias)
-            .bind(Self::commands)
-            .listen(Self::lookup)
-            .into_callable())
+        Ok(Binding::create(
+            state.clone(),
+            Self {
+                user_defined_state,
+                state,
+            },
+        )
+        .await
+        .bind(Self::add)
+        .bind(Self::update)
+        .bind(Self::remove)
+        .bind(Self::alias)
+        .bind(Self::commands)
+        .listen(Self::lookup)
+        .into_callable())
     }
 
     async fn add(self: Arc<Self>, msg: Message) -> impl Render {
@@ -135,15 +138,19 @@ impl UserDefined {
         let body = &msg.args()["body"];
         anyhow::ensure!(!body.is_empty(), "the command body cannot be empty");
 
-        let mut state = self.state.lock().await;
-        if !state.insert(Command::new(name, body, msg.sender_name())) {
+        if !self
+            .user_defined_state
+            .lock()
+            .await
+            .insert(Command::new(name, body, msg.sender_name()))
+        {
             return Ok(Simple {
                 twitch: format!("{name} already exists"),
                 discord: format!("`{name}` already exists"),
             });
         }
 
-        Self::sync(&state).await?;
+        self.sync().await?;
 
         Ok(Simple {
             twitch: format!("created {name} -> {body}"),
@@ -159,15 +166,19 @@ impl UserDefined {
 
         anyhow::ensure!(!body.is_empty(), "the command body cannot be empty");
 
-        let mut state = self.state.lock().await;
-        if !state.update(name, |cmd| cmd.body = body.to_string()) {
+        if !self
+            .user_defined_state
+            .lock()
+            .await
+            .update(name, |cmd| cmd.body = body.to_string())
+        {
             return Ok(Simple {
                 twitch: format!("{name} doesn't exists"),
                 discord: format!("`{name}` doesn't exists"),
             });
         }
 
-        Self::sync(&state).await?;
+        self.sync().await?;
 
         Ok(Simple {
             twitch: format!("updated {name} -> {body}"),
@@ -180,15 +191,14 @@ impl UserDefined {
 
         let name = Self::validate_command(&msg.args()["name"])?;
 
-        let mut state = self.state.lock().await;
-        if !state.remove(name) {
+        if !self.user_defined_state.lock().await.remove(name) {
             return Ok(Simple {
                 twitch: format!("{name} wasn't found"),
                 discord: format!("`{name}` wasn't found"),
             });
         }
 
-        Self::sync(&state).await?;
+        self.sync().await?;
 
         Ok(Simple {
             twitch: format!("removed: {name}"),
@@ -202,22 +212,24 @@ impl UserDefined {
         let from = Self::validate_command(&msg.args()["from"])?;
         let to = Self::validate_command(&msg.args()["to"])?;
 
-        let mut state = self.state.lock().await;
-        if !state.has(from) {
-            return Ok(Simple {
-                twitch: format!("{from} was not found"),
-                discord: format!("`{from}` was not found"),
-            });
+        {
+            let mut state = self.user_defined_state.lock().await;
+            if !state.has(from) {
+                return Ok(Simple {
+                    twitch: format!("{from} was not found"),
+                    discord: format!("`{from}` was not found"),
+                });
+            }
+
+            if !state.alias(from, to) {
+                return Ok(Simple {
+                    twitch: format!("{to} already exists"),
+                    discord: format!("`{to}` already exists"),
+                });
+            }
         }
 
-        if !state.alias(from, to) {
-            return Ok(Simple {
-                twitch: format!("{to} already exists"),
-                discord: format!("`{to}` already exists"),
-            });
-        }
-
-        Self::sync(&state).await?;
+        self.sync().await?;
 
         Ok(Simple {
             twitch: format!("aliased {from} to {to}"),
@@ -226,7 +238,7 @@ impl UserDefined {
     }
 
     async fn commands(self: Arc<Self>, _: Message) -> impl Render {
-        let state = self.state.lock().await;
+        let state = self.user_defined_state.lock().await;
         let (mut resp, line) = state.get_all().map(|c| &*c.name).enumerate().fold(
             (Response::builder(), String::new()),
             |(mut resp, mut out), (i, cmd)| {
@@ -249,7 +261,7 @@ impl UserDefined {
 
     async fn lookup(self: Arc<Self>, msg: Message) -> impl Render {
         let cmd = msg.data().split_ascii_whitespace().next()?;
-        let mut state = self.state.lock().await;
+        let mut state = self.user_defined_state.lock().await;
         if !state.has(cmd) {
             return None;
         }
@@ -259,8 +271,9 @@ impl UserDefined {
         Some(cmd.body.clone())
     }
 
-    async fn sync(state: &UserDefinedState) -> anyhow::Result<()> {
-        Ok(state.save_to_file::<JsonPretty>("user_defined").await?)
+    async fn sync(&self) -> anyhow::Result<()> {
+        let uds = self.user_defined_state.lock().await;
+        uds.save_to_file(&self.state).await
     }
 
     fn validate_command(name: &str) -> anyhow::Result<&str> {

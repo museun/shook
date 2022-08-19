@@ -1,6 +1,5 @@
 use std::{future::Future, pin::Pin};
 
-#[macro_use]
 pub mod help;
 
 pub mod args;
@@ -10,6 +9,9 @@ pub mod render;
 
 mod format;
 pub use format::{FormatTime, IterExt};
+
+pub mod config;
+pub use config::{ConfigPath, PersistFromConfig};
 
 mod state;
 
@@ -25,12 +27,10 @@ pub mod prelude {
     pub use std::sync::Arc;
 
     #[derive(Clone, Debug)]
-    pub struct Streamer(pub String);
-
-    pub use crate::cmd;
+    pub struct StreamerName(pub String);
 
     pub use crate::callable::{self, Binding, Command, IntoCallable, SharedCallable};
-    pub use crate::help::Registry;
+    pub type SharedRegistry = Arc<crate::help::Registry>;
     pub use crate::message::Message;
     pub use crate::render::{Render, RenderFlavor, Response, Simple};
     pub use crate::state::{GlobalState, State};

@@ -1,36 +1,16 @@
-use anyhow::Context;
-
 mod secret;
 pub use secret::Secret;
 
-pub type Assign<T> = fn(&mut T, String);
+mod ephemeral;
+pub use ephemeral::Ephemeral;
 
-pub fn load_from_env<T, const N: usize>(keys: [(&str, Assign<T>); N]) -> anyhow::Result<T>
-where
-    T: Default + std::fmt::Debug,
-{
-    let get = |key| {
-        log::trace!("looking up {key}");
-        let res = std::env::var(key);
-        res.with_context(|| anyhow::anyhow!("key '{key}' was not found"))
-    };
-
-    log::trace!("loading env vars for: {}", std::any::type_name::<T>());
-
-    let this = keys.iter().try_fold(T::default(), |mut this, (key, func)| {
-        func(&mut this, get(key)?);
-        Ok(this)
-    });
-
-    if let Ok(this) = &this {
-        log::debug!("created: {:?}", this);
+fn redact(s: &str) -> impl std::fmt::Debug {
+    struct NoDebug(String);
+    impl std::fmt::Debug for NoDebug {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str(&*self.0)
+        }
     }
-    this
-}
 
-pub trait LoadFromEnv
-where
-    Self: Sized,
-{
-    fn load_from_env() -> anyhow::Result<Self>;
+    NoDebug(format!("{{len = {}}}", s.len()))
 }

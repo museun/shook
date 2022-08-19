@@ -5,7 +5,7 @@ use persist::{tokio::PersistExt, yaml::Yaml};
 use crate::{
     callable::CallableFn,
     message::MessageType,
-    prelude::{GlobalState, Message, Registry, Render, Response, SharedCallable, State},
+    prelude::{GlobalState, Message, Render, Response, SharedCallable, State},
     render::{BoxedRender, RenderFlavor},
     BoxedFuture,
 };
@@ -31,7 +31,7 @@ where
     }
 
     async fn mock_with_state(self, mut state: State) -> TestBinding {
-        let registry = Registry::load_from_file::<Yaml>(concat!(
+        let registry = crate::help::Registry::load_from_file::<Yaml>(concat!(
             // this points to the crate in the workspace, not the workspace itself
             env!("CARGO_MANIFEST_DIR"),
             "/../default_help"

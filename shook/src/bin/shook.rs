@@ -1,53 +1,40 @@
-use shook::another_viewer::BanPatterns;
-use shook_core::{
-    help::Registry,
-    prelude::{GlobalState, State, Streamer},
-};
+use std::sync::Arc;
+
+use shook::config::Config;
+use shook_core::prelude::{GlobalState, State, StreamerName};
 use shook_helix::{EmoteMap, HelixClient, OAuth};
 
 use persist::{tokio::PersistExt as _, yaml::Yaml};
 
-fn load_config(state: &mut State) -> anyhow::Result<()> {
-    use shook_config::*;
-    fn load<F>(state: &mut State) -> anyhow::Result<()>
-    where
-        F: LoadFromEnv + Send + Sync + 'static,
-    {
-        F::load_from_env().map(|config| state.insert(config))
-    }
-    macro_rules! load {
-        ($($ty:ty)*) => {
-            $(load::<$ty>(state)?;)*
-        };
-    }
+async fn load_configurations(state: &mut State) -> anyhow::Result<()> {
+    let config = Config::load_from_file::<Yaml>("config").await?;
 
-    load! {
-        shook_twitch::config::Irc
-        shook_helix::config::Twitch
-        shook_twilight::config::Discord
-        shook::config::Spotify
-        shook::config::AnotherViewer
-        shook::config::Youtube
-    }
+    state.insert(config.twitch);
+    state.insert(config.discord);
+    state.insert(config.helix);
+    state.insert(config.spotify);
+    state.insert(config.another_viewer);
+    state.insert(config.youtube);
+    state.insert(config.user_defined);
+    state.insert(config.registry);
 
-    log::info!("succesfully loaded env");
     Ok(())
 }
 
-async fn load_ban_patterns(state: &mut State) -> anyhow::Result<()> {
-    let patterns = BanPatterns::load_from_file::<Yaml>("ban_patterns").await?;
-    state.insert(patterns);
-    Ok(())
-}
-
-async fn load_help(state: &mut State) -> anyhow::Result<()> {
-    let registry = Registry::load_from_file::<Yaml>("default_help").await?;
+async fn load_registry(state: &mut State) -> anyhow::Result<()> {
+    let path = state.get_config_path::<shook::config::Registry>();
+    let registry = shook_core::help::Registry::load_from_file::<Yaml>(&path)
+        .await
+        .map(Arc::new)?;
     state.insert(registry);
     Ok(())
 }
 
 async fn init_twitch(state: &mut State) -> anyhow::Result<()> {
-    let twitch = state.get::<shook_helix::config::Twitch>()?;
+    let twitch = state.get::<shook_helix::config::Config>()?;
+    let streamer = state
+        .extract(|config: &shook_twitch::config::Config| config.channel.clone())
+        .map(StreamerName)?;
 
     log::debug!("getting twitch oauth tokens");
     let twitch_oauth = OAuth::create(&twitch.client_id, &twitch.client_secret).await?;
@@ -66,16 +53,14 @@ async fn init_twitch(state: &mut State) -> anyhow::Result<()> {
     state.insert(twitch_oauth);
     state.insert(twitch_client);
     state.insert(emote_map);
-
-    // TODO change this
-    state.insert(Streamer("museun".into()));
+    state.insert(streamer);
 
     Ok(())
 }
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
-    simple_env_load::load_env_from([".dev.env"]);
+    simple_env_load::load_env_from([".dev.env", ".log.env"]);
     alto_logger::TermLogger::new(
         alto_logger::Options::default()
             .with_time(alto_logger::TimeConfig::relative_now())
@@ -84,22 +69,18 @@ async fn main() -> anyhow::Result<()> {
     .init()?;
 
     let mut state = State::default();
+
     log::info!("loading configuration");
-    load_config(&mut state)?;
+    load_configurations(&mut state).await?;
 
     log::info!("loading help");
-    load_help(&mut state).await?;
-
-    log::info!("loading ban patterns");
-    load_ban_patterns(&mut state).await?;
+    load_registry(&mut state).await?;
 
     log::info!("getting twitch clients");
     init_twitch(&mut state).await?;
 
     let state = GlobalState::new(state);
-
     log::trace!("binding callables");
-
     let callables = [
         shook::Builtin::bind(state.clone()).await?,
         shook::Crates::bind(state.clone()).await?,

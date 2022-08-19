@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 pub mod another_viewer;
 pub use another_viewer::AnotherViewer;
 

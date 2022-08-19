@@ -18,19 +18,19 @@ pub async fn create_bot<const N: usize>(
     state: GlobalState,
     callables: [SharedCallable; N],
 ) -> anyhow::Result<()> {
-    let config: crate::config::Irc = state.get_owned().await;
+    let config: crate::config::Config = state.get_owned().await;
 
     let reg = types::Registration {
         name: &config.name,
-        pass: &config.pass,
+        pass: &config.password,
     };
 
     log::info!(
         "connecting to {} (with name {})",
-        &config.addr,
+        &config.address,
         &config.name
     );
-    let (identity, conn) = Connection::connect(&config.addr, reg).await?;
+    let (identity, conn) = Connection::connect(&config.address, reg).await?;
     state.insert(identity).await;
 
     log::info!("connected");

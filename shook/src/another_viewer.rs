@@ -3,61 +3,81 @@ use std::time::Duration;
 use fastrand_ext::IterExt as _;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use shook_config::Secret;
-use shook_core::{prelude::*, IterExt as _};
+use serde::ser::SerializeSeq;
+use shook_config::{Ephemeral, Secret};
+use shook_core::{prelude::*, IterExt as _, PersistFromConfig};
 use shook_helix::EmoteMap;
 use tokio::{sync::Mutex, time::Instant};
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-#[serde(transparent)]
-pub struct BanPatterns {
-    pub list: Vec<String>,
+#[derive(Clone, Debug, Default)]
+struct Patterns {
+    list: Vec<Regex>,
 }
 
-struct Patterns {
-    pub patterns: Vec<Regex>,
+impl<'de> serde::Deserialize<'de> for Patterns {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::Error;
+        let list = <Vec<std::borrow::Cow<'_, str>>>::deserialize(deserializer)?;
+        list.into_iter()
+            .map(|re| Regex::new(&*re).map_err(D::Error::custom))
+            .collect::<Result<_, D::Error>>()
+            .map(|list| Patterns { list })
+    }
+}
+
+impl serde::Serialize for Patterns {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.list.len()))?;
+        self.list
+            .iter()
+            .map(|c| c.as_str())
+            .try_for_each(|re| seq.serialize_element(re))?;
+        seq.end()
+    }
+}
+
+impl PersistFromConfig for Patterns {
+    type ConfigPath = crate::config::AnotherViewer;
 }
 
 pub struct AnotherViewer {
     last: Mutex<Instant>,
     emote_map: EmoteMap,
     client: reqwest::Client,
-    key: Secret<String>,
-    remote: String,
+    bearer_token: Ephemeral,
+    endpoint: Secret,
     patterns: Patterns,
 }
 
 impl AnotherViewer {
     pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-        let config: crate::config::AnotherViewer = state.get_owned().await;
-        let ban_patterns: &BanPatterns = &*state.get().await;
+        let crate::config::AnotherViewer {
+            endpoint,
+            bearer_token,
+            ..
+        } = state.get_owned().await;
 
-        let patterns = match ban_patterns
-            .list
-            .iter()
-            .map(|s| Regex::new(s).map_err(Into::into))
-            .collect::<anyhow::Result<Vec<_>>>()
-        {
-            Ok(patterns) => patterns,
-            Err(err) => {
-                log::error!("invalid pattern. try again");
-                return Err(err);
-            }
-        };
+        let patterns = Patterns::load_from_file(&state).await?;
+        let emote_map = state.get_owned().await;
 
         let this = Self {
             last: Mutex::new(Instant::now()),
-            emote_map: state.get_owned().await,
             client: reqwest::Client::new(),
-            key: config.bearer_token,
-            remote: config.remote,
-            patterns: Patterns { patterns },
+            emote_map,
+            bearer_token,
+            endpoint,
+            patterns,
         };
 
-        let reg = state.get().await;
-        Ok(Binding::create(&reg, this)
+        Ok(Binding::create(state, this)
+            .await
             .bind(Self::speak)
-            .bind(Self::banned)
             .listen(Self::listen)
             .into_callable())
     }
@@ -65,18 +85,6 @@ impl AnotherViewer {
     async fn speak(self: Arc<Self>, msg: Message) -> impl Render {
         let ctx = msg.args().get("context");
         self.generate(ctx).await.map(Response::reply)
-    }
-
-    async fn banned(self: Arc<Self>, msg: Message) -> impl Render {
-        msg.require_elevation()?;
-
-        Ok(self
-            .patterns
-            .patterns
-            .iter()
-            .map(|s| s.as_str())
-            .fold(Response::builder(), |r, s| r.say(s))
-            .finish())
     }
 
     async fn listen(self: Arc<Self>, msg: Message) -> impl Render {
@@ -136,8 +144,8 @@ impl AnotherViewer {
         let data = self.process_data(data);
 
         self.client
-            .post(format!("{}/train", &self.remote))
-            .bearer_auth(&*self.key)
+            .post(format!("{}/train", &*self.endpoint))
+            .bearer_auth(&*self.bearer_token)
             .json(&Req { data })
             .send()
             .await
@@ -165,7 +173,7 @@ impl AnotherViewer {
         };
 
         self.client
-            .get(format!("{}/generate", &self.remote))
+            .get(format!("{}/generate", &*self.endpoint))
             .json(&req)
             .timeout(Duration::from_secs(3))
             .send()
@@ -193,7 +201,7 @@ impl AnotherViewer {
 
     fn filter_annoying_patterns(&self, data: &str) -> String {
         self.patterns
-            .patterns
+            .list
             .iter()
             .fold(String::with_capacity(data.len()), |mut text, re| {
                 text.push_str(&*re.replace_all(data, ""));

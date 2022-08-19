@@ -94,19 +94,18 @@ struct Spotify {
 impl Spotify {
     const HISTORY_LIMIT: usize = 5;
 
-    async fn create(state: GlobalState) -> anyhow::Result<Self> {
-        let spotify = {
-            let config = state.get::<crate::config::Spotify>().await;
-            SpotifyClient::new(&config.client_id, &config.client_secret).await?
-        };
+    async fn create(
+        config: crate::config::Spotify,
+        helix: HelixClient,
+        streamer: StreamerName,
+    ) -> anyhow::Result<Self> {
+        let spotify = SpotifyClient::new(&config.client_id, &config.client_secret).await?;
         let queue = Arc::new(Mutex::new(Queue::with_capacity(Self::HISTORY_LIMIT)));
 
         tokio::spawn({
             let queue = queue.clone();
-            let twitch = state.get_owned::<HelixClient>().await;
             let spotify = spotify.clone();
-            let streamer = state.get_owned::<Streamer>().await;
-            Self::update_loop(queue, twitch, spotify, streamer)
+            Self::update_loop(queue, helix, spotify, streamer)
         });
 
         Ok(Self { spotify, queue })
@@ -135,7 +134,7 @@ impl Spotify {
         queue: Arc<Mutex<Queue<Song>>>,
         twitch: HelixClient,
         spotify: SpotifyClient,
-        streamer: Streamer,
+        streamer: StreamerName,
     ) {
         loop {
             if let Ok([_stream]) = twitch.get_streams([&streamer.0]).await.as_deref() {
@@ -169,10 +168,10 @@ struct Youtube {
 }
 
 impl Youtube {
-    async fn create(state: GlobalState) -> Self {
+    async fn create(config: crate::config::Youtube) -> Self {
         Self {
             client: reqwest::Client::new(),
-            ep: state.get::<crate::config::Youtube>().await.endpoint.clone(),
+            ep: config.endpoint,
         }
     }
 
@@ -222,14 +221,20 @@ enum Mode {
 
 impl WhatSong {
     pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
+        let youtube_config = state.get_owned().await;
+        let spotify_config = state.get_owned().await;
+
+        let helix_client = state.get_owned().await;
+        let streamer = state.get_owned().await;
+
         let this = Self {
             mode: <Arc<Mutex<_>>>::default(),
-            youtube: Youtube::create(state.clone()).await,
-            spotify: Spotify::create(state.clone()).await?,
+            youtube: Youtube::create(youtube_config).await,
+            spotify: Spotify::create(spotify_config, helix_client, streamer).await?,
         };
 
-        let reg = state.get().await;
-        Ok(Binding::create(&reg, this)
+        Ok(Binding::create(state, this)
+            .await
             .bind(Self::current)
             .bind(Self::previous)
             .bind(Self::swap)

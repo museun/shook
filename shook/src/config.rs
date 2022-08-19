@@ -1,46 +1,112 @@
-use shook_config::{load_from_env, LoadFromEnv, Secret};
+use std::path::{Path, PathBuf};
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+use shook_config::{Ephemeral, Secret};
+use shook_core::ConfigPath;
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Spotify {
-    pub client_id: String,
-    pub client_secret: Secret<String>,
+    pub client_id: Secret,
+    pub client_secret: Ephemeral,
 }
 
-impl LoadFromEnv for Spotify {
-    fn load_from_env() -> anyhow::Result<Self> {
-        load_from_env([
-            ("SHAKEN_SPOTIFY_CLIENT_ID", |t, v| t.client_id = v),
-            ("SHAKEN_SPOTIFY_CLIENT_SECRET", |t, v| {
-                t.client_secret = Secret(v)
-            }),
-        ])
-    }
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct AnotherViewer {
-    pub remote: String,
-    pub bearer_token: Secret<String>,
+    pub endpoint: Secret,
+    pub bearer_token: Ephemeral,
+    pub filter_patterns_path: PathBuf,
 }
 
-impl LoadFromEnv for AnotherViewer {
-    fn load_from_env() -> anyhow::Result<Self> {
-        load_from_env([
-            ("SHAKEN_BRAIN_REMOTE_URL", |t, v| t.remote = v),
-            ("SHAKEN_BRAIN_GENERATE_TOKEN", |t, v| {
-                t.bearer_token = Secret(v)
-            }),
-        ])
+impl ConfigPath for AnotherViewer {
+    fn file_path(&self) -> &Path {
+        &self.filter_patterns_path
     }
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Youtube {
     pub endpoint: String,
 }
 
-impl LoadFromEnv for Youtube {
-    fn load_from_env() -> anyhow::Result<Self> {
-        load_from_env([("YOUTUBE_HISTORY_SERVER", |t, v| t.endpoint = v)])
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+pub struct UserDefined {
+    pub user_defined_path: PathBuf,
+}
+
+impl ConfigPath for UserDefined {
+    fn file_path(&self) -> &Path {
+        &self.user_defined_path
     }
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+pub struct Registry {
+    pub registry_path: PathBuf,
+}
+
+impl ConfigPath for Registry {
+    fn file_path(&self) -> &Path {
+        &self.registry_path
+    }
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+pub struct Config {
+    pub twitch: shook_twitch::config::Config,
+    pub discord: shook_twilight::config::Config,
+    pub helix: shook_helix::config::Config,
+
+    pub spotify: self::Spotify,
+    pub another_viewer: self::AnotherViewer,
+    pub youtube: self::Youtube,
+    pub user_defined: self::UserDefined,
+    pub registry: self::Registry,
+}
+
+impl Config {
+    pub fn default_config() -> Self {
+        Self {
+            twitch: shook_twitch::config::Config {
+                address: String::from("irc.chat.twitch.tv:6667"),
+                name: String::from("shaken_bot"),
+                password: Ephemeral::key("SHAKEN_TWITCH_OAUTH_TOKEN"),
+                channel: String::from("#museun"),
+            },
+            discord: shook_twilight::config::Config {
+                oauth_token: Ephemeral::key("SHAKEN_DISCORD_OAUTH_TOKEN"),
+            },
+            helix: shook_helix::config::Config {
+                client_id: Secret::key("SHAKEN_TWITCH_CLIENT_ID"),
+                client_secret: Ephemeral::key("SHAKEN_TWITCH_CLIENT_SECRET"),
+            },
+            spotify: Spotify {
+                client_id: Secret::key("SHAKEN_SPOTIFY_CLIENT_ID"),
+                client_secret: Ephemeral::key("SHAKEN_SPOTIFY_CLIENT_SECRET"),
+            },
+            another_viewer: AnotherViewer {
+                endpoint: Secret::key("SHAKEN_BRAIN_REMOTE"),
+                bearer_token: Ephemeral::key("SHAKEN_BRAIN_GENERATE_TOKEN"),
+                filter_patterns_path: PathBuf::from("./data/filter_patterns.yaml"),
+            },
+            youtube: Youtube {
+                endpoint: String::from("http://localhost:50000/youtube"),
+            },
+            user_defined: UserDefined {
+                user_defined_path: PathBuf::from("./data/user_defined.json"),
+            },
+            registry: Registry {
+                registry_path: PathBuf::from("./data/registry.yaml"),
+            },
+        }
+    }
+}
+
+#[tokio::test]
+async fn asdf() {
+    use persist::tokio::PersistExt;
+    use persist::yaml::Yaml;
+
+    Config::default_config()
+        .save_to_file::<Yaml>("config")
+        .await
+        .unwrap();
 }

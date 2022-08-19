@@ -2,13 +2,6 @@ use std::{borrow::Cow, collections::HashMap};
 
 use crate::prelude::Command;
 
-#[macro_export]
-macro_rules! cmd {
-    ($namespace:tt :: $command:tt) => {
-        concat!(stringify!($namespace), "::", stringify!($command))
-    };
-}
-
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Registry {
     #[serde(flatten)]

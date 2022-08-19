@@ -21,7 +21,7 @@ impl ToRow for Item {
 impl std::str::FromStr for Item {
     type Err = anyhow::Error;
     fn from_str(input: &str) -> anyhow::Result<Self> {
-        let mut iter = input.splitn(4, ",").map(ToString::to_string);
+        let mut iter = input.splitn(4, ',').map(ToString::to_string);
 
         Ok(Self {
             id: iter.next().with_context(|| "missing field `id`")?,
@@ -113,7 +113,7 @@ fn from_iso8601(period: &str) -> i64 {
             'H' => (a + parse(p, i) * 60 * 60, i),
             'M' => (a + parse(p, i) * 60, i),
             'S' => (a + parse(p, i), i),
-            'P' | 'T' | _ => (a, i),
+            _ => (a, i),
         })
         .0
 }
