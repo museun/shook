@@ -32,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
     .init()?;
 
     let args = Args::parse_args_default_or_exit();
-    let key = std::env::var("YOUTUBE_API_KEY")?;
+    let key = std::env::var("SHAKEN_YOUTUBE_API_KEY")?;
 
     let addr = format!("{}:{}", args.address, args.port);
     let addr = tokio::net::lookup_host(&addr).await?.next().unwrap();
