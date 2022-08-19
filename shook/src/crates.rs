@@ -101,26 +101,30 @@ impl CratesClient {
     }
 }
 
-pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-    state.insert(CratesClient::new()).await;
-    let registry = state.get().await;
+pub struct Crates;
 
-    Ok(Group::new(&registry)
-        .bind(cmd!(crates::crate), lookup)
-        .into_callable())
-}
+impl Crates {
+    pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
+        state.insert(CratesClient::new()).await;
+        let registry = state.get().await;
 
-async fn lookup(msg: Message) -> impl Render {
-    let arg = &msg.args()["name"];
+        Ok(Binding::create(&registry, Self)
+            .bind(Self::crates)
+            .into_callable())
+    }
 
-    let client: &CratesClient = &*msg.state().get().await;
-    let crates = client.get(arg).await?;
+    async fn crates(self: Arc<Self>, msg: Message) -> impl Render {
+        let arg = &msg.args()["name"];
 
-    anyhow::ensure!(!crates.is_empty(), "I cannot find anything for: {arg}");
-    let head = crates.first().cloned();
+        let client: &CratesClient = &*msg.state().get().await;
+        let crates = client.get(arg).await?;
 
-    Ok(crates
-        .into_iter()
-        .find(|c| c.exact_match)
-        .map_or_else(|| Match::Closest(head.unwrap()), Match::Exact))
+        anyhow::ensure!(!crates.is_empty(), "I cannot find anything for: {arg}");
+        let head = crates.first().cloned();
+
+        Ok(crates
+            .into_iter()
+            .find(|c| c.exact_match)
+            .map_or_else(|| Match::Closest(head.unwrap()), Match::Exact))
+    }
 }

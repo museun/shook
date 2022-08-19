@@ -2,16 +2,13 @@ use std::{collections::BTreeSet, time::SystemTime};
 
 use anyhow::Context;
 use shook_core::{help::Descriptions, prelude::*, FormatTime};
+use shook_local::LocalPort;
 use tokio::time::Instant;
 
 pub struct Builtin(Instant);
 
-pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-    Builtin::bind(state).await
-}
-
 impl Builtin {
-    async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
+    pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
         let registry = state.get().await;
         Ok(Binding::create(&registry, Self(Instant::now()))
             .bind(Self::theme)
@@ -22,8 +19,14 @@ impl Builtin {
             .bind(Self::hello)
             .bind(Self::help)
             .bind(Self::version)
+            .bind(Self::local_port)
             .listen(Self::say_hello)
             .into_callable())
+    }
+
+    async fn local_port(self: Arc<Self>, msg: Message) -> impl Render {
+        msg.require_broadcaster()?;
+        Ok(msg.state().get::<LocalPort>().await.to_string())
     }
 
     async fn version(self: Arc<Self>, _: Message) -> impl Render {

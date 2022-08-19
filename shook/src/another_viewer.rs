@@ -1,28 +1,49 @@
 use std::time::Duration;
 
-use fastrand_ext::IterExt;
+use fastrand_ext::IterExt as _;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use shook_config::Secret;
-use shook_core::prelude::*;
+use shook_core::{prelude::*, IterExt as _};
 use shook_helix::EmoteMap;
 use tokio::{sync::Mutex, time::Instant};
 
-pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-    AnotherViewer::bind(state).await
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct BanPatterns {
+    pub list: Vec<String>,
 }
 
-struct AnotherViewer {
+struct Patterns {
+    pub patterns: Vec<Regex>,
+}
+
+pub struct AnotherViewer {
     last: Mutex<Instant>,
     emote_map: EmoteMap,
     client: reqwest::Client,
     key: Secret<String>,
     remote: String,
+    patterns: Patterns,
 }
 
 impl AnotherViewer {
-    async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
+    pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
         let config: crate::config::AnotherViewer = state.get_owned().await;
+        let ban_patterns: &BanPatterns = &*state.get().await;
+
+        let patterns = match ban_patterns
+            .list
+            .iter()
+            .map(|s| Regex::new(s).map_err(Into::into))
+            .collect::<anyhow::Result<Vec<_>>>()
+        {
+            Ok(patterns) => patterns,
+            Err(err) => {
+                log::error!("invalid pattern. try again");
+                return Err(err);
+            }
+        };
 
         let this = Self {
             last: Mutex::new(Instant::now()),
@@ -30,11 +51,13 @@ impl AnotherViewer {
             client: reqwest::Client::new(),
             key: config.bearer_token,
             remote: config.remote,
+            patterns: Patterns { patterns },
         };
 
         let reg = state.get().await;
         Ok(Binding::create(&reg, this)
             .bind(Self::speak)
+            .bind(Self::banned)
             .listen(Self::listen)
             .into_callable())
     }
@@ -42,6 +65,18 @@ impl AnotherViewer {
     async fn speak(self: Arc<Self>, msg: Message) -> impl Render {
         let ctx = msg.args().get("context");
         self.generate(ctx).await.map(Response::reply)
+    }
+
+    async fn banned(self: Arc<Self>, msg: Message) -> impl Render {
+        msg.require_elevation()?;
+
+        Ok(self
+            .patterns
+            .patterns
+            .iter()
+            .map(|s| s.as_str())
+            .fold(Response::builder(), |r, s| r.say(s))
+            .finish())
     }
 
     async fn listen(self: Arc<Self>, msg: Message) -> impl Render {
@@ -93,20 +128,12 @@ impl AnotherViewer {
     }
 
     async fn train(&self, data: &str) -> Option<()> {
-        static BANNED: Lazy<Regex> =
-            Lazy::new(|| Regex::new(r#"((!|@).+?\b)|(\bshaken(_bot)?\b)"#).unwrap());
-        let next = BANNED.replace_all(data, "");
-
-        use shook_core::IterExt as _;
-        let data = next
-            .split_ascii_whitespace()
-            .filter(|c| url::Url::parse(c).is_err())
-            .join_with(' ');
-
         #[derive(serde::Serialize)]
         struct Req {
             data: String,
         }
+
+        let data = self.process_data(data);
 
         self.client
             .post(format!("{}/train", &self.remote))
@@ -124,7 +151,7 @@ impl AnotherViewer {
             data: String,
         }
 
-        #[derive(serde::Serialize)]
+        #[derive(Debug, serde::Serialize)]
         struct Req {
             min: usize,
             max: usize,
@@ -147,7 +174,49 @@ impl AnotherViewer {
             .json::<Resp>()
             .await
             .ok()
-            .map(|c| c.data)
+            .map(|c| self.process_data(&c.data))
+    }
+
+    fn process_data(&self, data: &str) -> String {
+        let data = &mut String::from(data);
+        [
+            Self::filter_mentions,
+            Self::filter_annoying_patterns,
+            Self::filter_urls,
+            // this has to be last
+            Self::collapse_whitespace,
+        ]
+        .into_iter()
+        .for_each(|f| *data = f(self, &*data));
+        data.to_string()
+    }
+
+    fn filter_annoying_patterns(&self, data: &str) -> String {
+        self.patterns
+            .patterns
+            .iter()
+            .fold(String::with_capacity(data.len()), |mut text, re| {
+                text.push_str(&*re.replace_all(data, ""));
+                text
+            })
+    }
+
+    fn filter_mentions(&self, input: &str) -> String {
+        static PATTERN: Lazy<Regex> =
+            Lazy::new(|| Regex::new(r#"((!|@).+?\b)|(\bshaken(_bot)?\b)"#).unwrap());
+        PATTERN.replace_all(input, "").to_string()
+    }
+
+    fn filter_urls(&self, input: &str) -> String {
+        input
+            .split_ascii_whitespace()
+            .filter(|c| url::Url::parse(c).is_err())
+            .join_with(' ')
+    }
+
+    fn collapse_whitespace(&self, input: &str) -> String {
+        static PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\s{2,}"#).unwrap());
+        PATTERN.replace_all(input, " ").to_string()
     }
 
     fn contains_bot_name(ctx: &[&str]) -> bool {

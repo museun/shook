@@ -103,16 +103,12 @@ impl UserDefinedState {
     }
 }
 
-pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-    UserDefined::bind(state).await
-}
-
 pub struct UserDefined {
     state: Mutex<UserDefinedState>,
 }
 
 impl UserDefined {
-    async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
+    pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
         let uds = UserDefinedState::load_from_file::<Json>("user_defined")
             .await
             .unwrap_or_default();

@@ -11,10 +11,6 @@ use shook_core::{prelude::*, IterExt};
 use shook_helix::HelixClient;
 use tokio::sync::Mutex;
 
-pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-    WhatSong::bind(state).await
-}
-
 #[derive(Debug, Clone)]
 struct Song {
     id: TrackId,
@@ -210,7 +206,7 @@ impl Youtube {
     }
 }
 
-struct WhatSong {
+pub struct WhatSong {
     mode: Arc<Mutex<Mode>>,
     spotify: Spotify,
     youtube: Youtube,
@@ -225,7 +221,7 @@ enum Mode {
 }
 
 impl WhatSong {
-    async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
+    pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
         let this = Self {
             mode: <Arc<Mutex<_>>>::default(),
             youtube: Youtube::create(state.clone()).await,

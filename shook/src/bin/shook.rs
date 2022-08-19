@@ -1,3 +1,4 @@
+use shook::another_viewer::BanPatterns;
 use shook_core::{
     help::Registry,
     prelude::{GlobalState, State, Streamer},
@@ -30,6 +31,12 @@ fn load_config(state: &mut State) -> anyhow::Result<()> {
     }
 
     log::info!("succesfully loaded env");
+    Ok(())
+}
+
+async fn load_ban_patterns(state: &mut State) -> anyhow::Result<()> {
+    let patterns = BanPatterns::load_from_file::<Yaml>("ban_patterns").await?;
+    state.insert(patterns);
     Ok(())
 }
 
@@ -83,19 +90,26 @@ async fn main() -> anyhow::Result<()> {
     log::info!("loading help");
     load_help(&mut state).await?;
 
+    log::info!("loading ban patterns");
+    load_ban_patterns(&mut state).await?;
+
     log::info!("getting twitch clients");
     init_twitch(&mut state).await?;
 
     let state = GlobalState::new(state);
+
     log::trace!("binding callables");
+
     let callables = [
-        // another_viewer::bind(state.clone()).await?,w
-        shook::builtin::bind(state.clone()).await?,
-        shook::crates::bind(state.clone()).await?,
-        shook::user_defined::bind(state.clone()).await?,
-        shook::what_song::bind(state.clone()).await?,
+        shook::Builtin::bind(state.clone()).await?,
+        shook::Crates::bind(state.clone()).await?,
+        shook::UserDefined::bind(state.clone()).await?,
+        shook::WhatSong::bind(state.clone()).await?,
+        shook::AnotherViewer::bind(state.clone()).await?,
     ];
 
+    // TODO these should reconnect automatically
+    // TODO these should be configurable
     log::debug!("starting local bot");
     let local = tokio::task::spawn({
         let state = state.clone();
@@ -105,14 +119,12 @@ async fn main() -> anyhow::Result<()> {
     log::debug!("starting twitch bot");
     let twitch = tokio::task::spawn({
         let state = state.clone();
-        // TODO this should retry and reconnect
         shook_twitch::create_bot(state, callables.clone())
     });
 
     log::debug!("starting discord bot");
     let discord = tokio::task::spawn({
         let state = state.clone();
-        // TODO what are the error states for this?
         shook_twilight::create_bot(state, callables)
     });
 
