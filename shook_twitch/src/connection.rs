@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Context;
 use tokio::{
@@ -15,7 +15,29 @@ pub struct Connection {
 
 impl Connection {
     pub async fn connect(addr: &str, reg: Registration<'_>) -> anyhow::Result<(Identity, Self)> {
-        let mut stream = TcpStream::connect(addr).await?;
+        async fn try_connect(attempts: usize, addr: &str) -> anyhow::Result<TcpStream> {
+            let backoff = std::iter::successors(Some(0), |n| Some(n + 3))
+                .map(Duration::from_secs)
+                .take(attempts);
+
+            use tokio_stream::StreamExt as _;
+            let mut stream =
+                tokio_stream::iter(backoff).map(|dur| async move { tokio::time::sleep(dur).await });
+
+            while let Some(backoff) = stream.next().await {
+                backoff.await;
+
+                match tokio::time::timeout(Duration::from_secs(5), TcpStream::connect(addr)).await {
+                    Ok(Ok(stream)) => return Ok(stream),
+                    Ok(Err(err)) => log::warn!("could not connect. trying again: {err}"),
+                    Err(..) => log::warn!("connection attempt timed out, trying again"),
+                }
+            }
+
+            anyhow::bail!("could not connect")
+        }
+
+        let mut stream = try_connect(5, addr).await?;
 
         for cap in [
             "CAP REQ :twitch.tv/membership\r\n",
@@ -51,6 +73,7 @@ impl Connection {
     }
 
     pub async fn read_privmsg(&mut self) -> anyhow::Result<Privmsg> {
+        // XXX why is this a loop?
         loop {
             self.buf.clear();
 

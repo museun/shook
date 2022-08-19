@@ -1,10 +1,7 @@
 /target
-shook_local/target
 .dev.env
 *.json
-*.yml
-default_help.*
+*.yaml
 !default_help.yaml
-user_defined.*
-!user_defined.rs
+user_defined.ron
 list.csv

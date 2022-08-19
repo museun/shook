@@ -27,6 +27,9 @@ builtin:
   usage: <command?>
   description: looks up, or lists commands
 
+- command: '!local_port'
+  description: gets the address for the local instance
+
 what_song:
 - command: '!song'
   description: gets the currently playing song
@@ -42,17 +45,20 @@ what_song:
   usage: "<service>"
 
 crates:
-- command: '!crate'
+- command: '!crates'
   usage: <name>
   description: look up a Rust crate
   aliases:
-  - '!crates'
+  - '!crate'
   - '!lookup'
 
 another_viewer:
 - command: '!speak'
-  usage: "<context?>"
+  usage: "<context..>"
   description: "tries to force the bot to speak"
+
+- command: '!banned'
+  description: "lists the patterns will strip out"
 
 user_defined:
 - command: '!add'

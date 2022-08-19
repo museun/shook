@@ -1689,6 +1689,7 @@ dependencies = [
  "shook_config",
  "shook_core",
  "tokio",
+ "tokio-stream",
 ]
 
 [[package]]
