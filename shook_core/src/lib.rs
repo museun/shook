@@ -20,8 +20,6 @@ pub mod testing;
 
 type BoxedFuture<'a, T> = Pin<Box<dyn Future<Output = T> + 'a + Send>>;
 
-// TODO DontCare
-
 #[macro_use]
 pub mod prelude {
     pub use std::sync::Arc;

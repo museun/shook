@@ -106,8 +106,10 @@ impl ExampleArgs {
                 Ok(data.into())
             };
 
-            // TODO this should allow for underscores and probably numbers
-            let all_alpha = move |s: &[u8]| s.iter().all(u8::is_ascii_alphabetic);
+            let all_alpha = move |s: &[u8]| {
+                s.iter()
+                    .all(|d| matches!(d, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'_' | b'-'))
+            };
 
             let arg = match token.as_bytes() {
                 [b'<', arg @ .., b'.', b'.', b'>'] if all_alpha(arg) => ArgType {

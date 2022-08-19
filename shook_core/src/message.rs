@@ -80,7 +80,6 @@ impl Message {
         Ok(())
     }
 
-    // TODO redo these
     pub fn require_broadcaster(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
             self.is_from_broadcaster(),

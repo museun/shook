@@ -92,7 +92,6 @@ impl AnotherViewer {
             return None;
         }
 
-        // TODO not in this task
         let _ = self.train(msg.data()).await;
         let s = msg.data().split_ascii_whitespace().collect::<Vec<_>>();
 
@@ -142,7 +141,6 @@ impl AnotherViewer {
         }
 
         let data = self.process_data(data);
-
         self.client
             .post(format!("{}/train", &*self.endpoint))
             .bearer_auth(&*self.bearer_token)
