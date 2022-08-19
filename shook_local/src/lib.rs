@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use shook_core::{
     prelude::{GlobalState, Message, SharedCallable},
@@ -12,6 +12,15 @@ use tokio::{
     net::{TcpListener, TcpStream},
 };
 
+#[derive(Debug, Clone)]
+pub struct LocalPort(SocketAddr);
+
+impl std::fmt::Display for LocalPort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 pub async fn create_bot<const N: usize>(
     state: GlobalState,
     handlers: [SharedCallable; N],
@@ -19,6 +28,7 @@ pub async fn create_bot<const N: usize>(
     let listener = TcpListener::bind("localhost:0").await?;
     let addr = listener.local_addr()?;
     log::info!("local server is listening on: {addr}");
+    state.insert(LocalPort(addr)).await;
 
     loop {
         if let Ok((client, addr)) = listener.accept().await {
