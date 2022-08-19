@@ -29,7 +29,7 @@ pub mod prelude {
 
     pub use crate::cmd;
 
-    pub use crate::callable::{self, Binding, Command, Group, IntoCallable, SharedCallable};
+    pub use crate::callable::{self, Binding, Command, IntoCallable, SharedCallable};
     pub use crate::help::Registry;
     pub use crate::message::Message;
     pub use crate::render::{Render, RenderFlavor, Response, Simple};

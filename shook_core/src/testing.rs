@@ -31,9 +31,14 @@ where
     }
 
     async fn mock_with_state(self, mut state: State) -> TestBinding {
-        let registry = Registry::load_from_file::<Yaml>("default_help")
-            .await
-            .unwrap();
+        let registry = Registry::load_from_file::<Yaml>(concat!(
+            // this points to the crate in the workspace, not the workspace itself
+            env!("CARGO_MANIFEST_DIR"),
+            "/../default_help"
+        ))
+        .await
+        .unwrap();
+
         state.insert(registry);
 
         let state = GlobalState::new(state);
@@ -86,8 +91,8 @@ impl TestBinding {
         std::mem::take(&mut self.responses)
     }
 
-    pub async fn send_message(&mut self, data: &str, builder: impl BuildTestMessage) {
-        let mut builder = builder
+    pub async fn send_message<B: BuildTestMessage>(&mut self, data: &str) {
+        let mut builder = B::default()
             .with_data(data)
             .with_channel(&self.channel)
             .with_sender(&self.sender);
@@ -108,7 +113,7 @@ impl TestBinding {
 
 pub trait BuildTestMessage
 where
-    Self: Sized,
+    Self: Sized + Default,
 {
     type Output: MessageType;
     fn into_message(self) -> Self::Output;
@@ -149,6 +154,19 @@ pub struct MockMessage {
     admin: bool,
     moderator: bool,
     flavor: RenderFlavor,
+}
+
+impl Default for MockMessage {
+    fn default() -> Self {
+        Self {
+            source: Default::default(),
+            sender: Default::default(),
+            data: Default::default(),
+            admin: Default::default(),
+            moderator: Default::default(),
+            flavor: RenderFlavor::Twitch,
+        }
+    }
 }
 
 impl BuildTestMessage for MockMessage {

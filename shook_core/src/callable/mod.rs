@@ -5,12 +5,10 @@ use crate::{message::Message, render::BoxedRender, render::Render, BoxedFuture};
 mod binding;
 mod command;
 mod dispatch;
-mod group;
 
 pub use binding::Binding;
 pub use command::Command;
 pub use dispatch::Dispatch;
-pub use group::Group;
 
 pub trait IntoCallable {
     fn into_callable(self) -> SharedCallable;

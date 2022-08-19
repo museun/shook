@@ -14,6 +14,14 @@ impl GlobalState {
         Self(Arc::new(RwLock::new(state)))
     }
 
+    // TODO this should use try_ and unwrap
+    pub async fn get<T>(&self) -> RwLockReadGuard<'_, T>
+    where
+        T: Any + Send + Sync + 'static,
+    {
+        RwLockReadGuard::map(self.0.read().await, |state| state.get::<T>().unwrap())
+    }
+
     pub async fn get_owned<T>(&self) -> T
     where
         T: Any + Send + Sync + 'static,
@@ -22,11 +30,12 @@ impl GlobalState {
         (&*self.get::<T>().await).clone()
     }
 
-    pub async fn get<T>(&self) -> RwLockReadGuard<'_, T>
+    pub async fn try_get_owned<T>(&self) -> Option<T>
     where
         T: Any + Send + Sync + 'static,
+        T: Clone,
     {
-        RwLockReadGuard::map(self.0.read().await, |state| state.get::<T>().unwrap())
+        Some((&*self.try_get::<T>().await?).clone())
     }
 
     pub async fn try_get<T>(&self) -> Option<RwLockReadGuard<'_, T>>
@@ -78,7 +87,7 @@ impl State {
         T: Any + Send + Sync + 'static,
     {
         if let Some(..) = self.map.insert(TypeId::of::<T>(), Box::new(val)) {
-            eprintln!("override: {}", std::any::type_name::<T>());
+            log::warn!("replaced: {}", std::any::type_name::<T>());
         }
     }
 

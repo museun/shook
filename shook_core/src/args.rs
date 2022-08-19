@@ -54,17 +54,13 @@ impl ExampleArgs {
 }
 
 impl ExampleArgs {
-    const REQUIRED: Kind = Kind::Required;
-    const OPTIONAL: Kind = Kind::Optional;
-    const VARIADIC: Kind = Kind::Variadic;
-
     pub fn extract(&self, mut input: &str) -> Match<HashMap<String, String>> {
         if input.is_empty() {
-            if self.contains(&Self::REQUIRED) {
+            if self.contains(&Kind::Required) {
                 return Match::Required;
             }
             if !self.args.is_empty()
-                && (!self.contains(&Self::OPTIONAL) && !self.contains(&Self::VARIADIC))
+                && (!self.contains(&Kind::Optional) && !self.contains(&Kind::Variadic))
             {
                 return Match::NoMatch;
             }
@@ -110,7 +106,8 @@ impl ExampleArgs {
                 Ok(data.into())
             };
 
-            let all_alpha = |s: &[u8]| s.iter().all(u8::is_ascii_alphabetic);
+            // TODO this should allow for underscores and probably numbers
+            let all_alpha = move |s: &[u8]| s.iter().all(u8::is_ascii_alphabetic);
 
             let arg = match token.as_bytes() {
                 [b'<', arg @ .., b'.', b'.', b'>'] if all_alpha(arg) => ArgType {
@@ -130,14 +127,10 @@ impl ExampleArgs {
                 _ => continue,
             };
 
+            let done = arg.kind == Kind::Variadic;
             args.push(arg);
-            if matches!(
-                args.last(),
-                Some(&ArgType {
-                    kind: Kind::Variadic,
-                    ..
-                })
-            ) {
+
+            if done {
                 break;
             }
         }
