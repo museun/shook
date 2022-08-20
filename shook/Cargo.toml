@@ -33,12 +33,12 @@ fastrand_ext     = { git = "https://github.com/museun/fastrand_ext", version = "
 what_theme       = { git = "https://github.com/museun/what_theme", version = "0.1.0" }
 persist          = { git = "https://github.com/museun/persist", version = "0.1.0", features = ["tokio", "json", "yaml"] }
 
-shook_config     = { path = "../shook_config" }
-shook_core       = { path = "../shook_core" }
-shook_helix      = { path = "../shook_helix" }
-shook_local      = { path = "../shook_local" }
-shook_twilight   = { path = "../shook_twilight" }
-shook_twitch     = { path = "../shook_twitch" }
+shook_config     = { git = "https://github.com/museun/shook" }
+shook_core       = { git = "https://github.com/museun/shook" }
+shook_helix      = { git = "https://github.com/museun/shook" }
+shook_local      = { git = "https://github.com/museun/shook" }
+shook_twilight   = { git = "https://github.com/museun/shook" }
+shook_twitch     = { git = "https://github.com/museun/shook" }
 
 [dev-dependencies]
 insta = "1.18.2"

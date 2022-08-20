@@ -1630,12 +1630,12 @@ dependencies = [
  "rspotify",
  "serde",
  "serde_json",
- "shook_config",
- "shook_core",
- "shook_helix",
- "shook_local",
- "shook_twilight",
- "shook_twitch",
+ "shook_config 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_core 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_helix 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_local 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_twilight 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_twitch 0.1.0 (git+https://github.com/museun/shook)",
  "simple_env_load",
  "time 0.3.13",
  "tokio",
@@ -1655,7 +1655,7 @@ dependencies = [
  "bincode",
  "gumdrop",
  "log",
- "shook_markov",
+ "shook_markov 0.1.0 (git+https://github.com/museun/shook)",
  "zstd",
 ]
 
@@ -1671,7 +1671,7 @@ dependencies = [
  "gumdrop",
  "log",
  "serde",
- "shook_markov",
+ "shook_markov 0.1.0 (git+https://github.com/museun/shook)",
  "simple_env_load",
  "tokio",
  "tower-http",
@@ -1681,6 +1681,14 @@ dependencies = [
 [[package]]
 name = "shook_config"
 version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "shook_config"
+version = "0.1.0"
+source = "git+https://github.com/museun/shook#e9cda93746dc804bfe6315e7a108e315012e5586"
 dependencies = [
  "serde",
 ]
@@ -1701,14 +1709,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "shook_core"
+version = "0.1.0"
+source = "git+https://github.com/museun/shook#e9cda93746dc804bfe6315e7a108e315012e5586"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "heck",
+ "log",
+ "persist",
+ "serde",
+ "time 0.3.13",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
 name = "shook_helix"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "reqwest",
  "serde",
- "shook_config",
- "shook_core",
+ "shook_config 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_core 0.1.0 (git+https://github.com/museun/shook)",
+ "time 0.3.13",
+]
+
+[[package]]
+name = "shook_helix"
+version = "0.1.0"
+source = "git+https://github.com/museun/shook#e9cda93746dc804bfe6315e7a108e315012e5586"
+dependencies = [
+ "anyhow",
+ "reqwest",
+ "serde",
+ "shook_config 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_core 0.1.0 (git+https://github.com/museun/shook)",
  "time 0.3.13",
 ]
 
@@ -1721,8 +1758,24 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
- "shook_core",
- "shook_twitch",
+ "shook_core 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_twitch 0.1.0 (git+https://github.com/museun/shook)",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "shook_local"
+version = "0.1.0"
+source = "git+https://github.com/museun/shook#e9cda93746dc804bfe6315e7a108e315012e5586"
+dependencies = [
+ "anyhow",
+ "gumdrop",
+ "log",
+ "serde",
+ "serde_json",
+ "shook_core 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_twitch 0.1.0 (git+https://github.com/museun/shook)",
  "tokio",
  "tokio-stream",
 ]
@@ -1738,14 +1791,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "shook_markov"
+version = "0.1.0"
+source = "git+https://github.com/museun/shook#e9cda93746dc804bfe6315e7a108e315012e5586"
+dependencies = [
+ "fastrand",
+ "fastrand_ext",
+ "hashbrown",
+ "serde",
+]
+
+[[package]]
 name = "shook_twilight"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "log",
  "serde",
- "shook_config",
- "shook_core",
+ "shook_config 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_core 0.1.0 (git+https://github.com/museun/shook)",
+ "tokio",
+ "tokio-stream",
+ "twilight-gateway",
+ "twilight-http",
+ "twilight-model",
+]
+
+[[package]]
+name = "shook_twilight"
+version = "0.1.0"
+source = "git+https://github.com/museun/shook#e9cda93746dc804bfe6315e7a108e315012e5586"
+dependencies = [
+ "anyhow",
+ "log",
+ "serde",
+ "shook_config 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_core 0.1.0 (git+https://github.com/museun/shook)",
  "tokio",
  "tokio-stream",
  "twilight-gateway",
@@ -1760,8 +1841,22 @@ dependencies = [
  "anyhow",
  "log",
  "serde",
- "shook_config",
- "shook_core",
+ "shook_config 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_core 0.1.0 (git+https://github.com/museun/shook)",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "shook_twitch"
+version = "0.1.0"
+source = "git+https://github.com/museun/shook#e9cda93746dc804bfe6315e7a108e315012e5586"
+dependencies = [
+ "anyhow",
+ "log",
+ "serde",
+ "shook_config 0.1.0 (git+https://github.com/museun/shook)",
+ "shook_core 0.1.0 (git+https://github.com/museun/shook)",
  "tokio",
  "tokio-stream",
 ]

@@ -13,5 +13,5 @@ twilight-gateway = "0.13.0"
 twilight-http = "0.13.0"
 twilight-model = "0.13.0"
 
-shook_core = { path = "../shook_core" }
-shook_config = { path = "../shook_config" }
+shook_core = { git = "https://github.com/museun/shook" }
+shook_config = { git = "https://github.com/museun/shook" }

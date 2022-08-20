@@ -5,7 +5,7 @@ edition = "2021"
 license = "0BSD"
 
 [dependencies]
-shook_markov = { path = "../shook_markov" }
+shook_markov = { git = "https://github.com/museun/shook" }
 
 alto_logger       = "0.3.7"
 anyhow            = "1.0.60"

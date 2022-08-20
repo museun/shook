@@ -10,5 +10,5 @@ anyhow = "1.0.62"
 bincode = "1.3.3"
 gumdrop = "0.8.1"
 log = "0.4.17"
-shook_markov = { version = "0.1.0", path = "../shook_markov" }
+shook_markov = { git = "https://github.com/museun/shook" }
 zstd = "0.11.2"
