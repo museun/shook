@@ -260,15 +260,16 @@ impl WhatSong {
     }
 
     async fn swap(self: Arc<Self>, msg: Message) -> impl Render {
-        // if let Some(nope) = msg.require_broadcaster() {
-        //     return Some(nope);
-        // }
+        const INVALID_MODE: &str =
+            "invalid mode. try one of these: [spotify], [youtube], [none | off]";
+
+        msg.require_broadcaster()?;
 
         let mode = match &msg.args()["service"] {
             "spotify" => Mode::Spotify,
             "youtube" => Mode::Youtube,
             "none" | "off" => Mode::None,
-            _ => return None,
+            _ => anyhow::bail!(INVALID_MODE),
         };
 
         let f = |mode| match mode {
@@ -278,6 +279,6 @@ impl WhatSong {
         };
 
         let old = std::mem::replace(&mut *self.mode.lock().await, mode);
-        Some(format!("switched from '{}' to '{}'", f(old), f(mode)).boxed())
+        Ok(format!("switched from '{}' to '{}'", f(old), f(mode)).boxed())
     }
 }

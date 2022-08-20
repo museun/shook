@@ -99,14 +99,3 @@ impl Config {
         }
     }
 }
-
-#[tokio::test]
-async fn asdf() {
-    use persist::tokio::PersistExt;
-    use persist::yaml::Yaml;
-
-    Config::default_config()
-        .save_to_file::<Yaml>("config")
-        .await
-        .unwrap();
-}
