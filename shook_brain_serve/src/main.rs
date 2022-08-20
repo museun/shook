@@ -12,7 +12,7 @@ struct Config {
 
     /// path of brain to use
     #[options(meta = "<path>")]
-    file: Option<PathBuf>,
+    file: PathBuf,
 
     /// address to listen on
     #[options(default = "localhost:8000", meta = "<addr>")]
@@ -41,12 +41,11 @@ async fn main() -> anyhow::Result<()> {
     .init()?;
 
     let config = Config::parse_args_default_or_exit();
-    let bearer = get_env_var("SHAKEN_BRAIN_SUPER_SECRET_BEARER_TOKEN")?;
+    let bearer = get_env_var("SHAKEN_BRAIN_BEARER_TOKEN")?;
 
-    let file = match config.file {
-        Some(path) => path,
-        None => get_env_var("SHAKEN_BRAIN_FILE").map(PathBuf::from)?,
-    };
+    let file = get_env_var("SHAKEN_BRAIN_FILE")
+        .map(PathBuf::from)
+        .unwrap_or(config.file);
 
     log::info!("loading brain from {}", file.display());
     let brain = load(&file).await?;

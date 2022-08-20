@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use axum::{
     routing::{get, post},
     Extension,
@@ -10,7 +12,7 @@ mod client;
 mod handlers;
 mod state;
 
-pub async fn router(api_key: &str, path: &str) -> anyhow::Result<axum::Router> {
+pub async fn router(api_key: &str, path: &Path) -> anyhow::Result<axum::Router> {
     let state = State::new(Client::new(api_key), path).await?;
     Ok(axum::Router::new()
         .route("/", post(handlers::insert))

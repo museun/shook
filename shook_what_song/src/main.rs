@@ -1,4 +1,7 @@
-use std::net::SocketAddr;
+use std::{
+    net::SocketAddr,
+    path::{Path, PathBuf},
+};
 
 use gumdrop::Options;
 use tower_http::auth::RequireAuthorizationLayer;
@@ -19,6 +22,10 @@ struct Args {
     /// port to listen on
     #[options(default = "58810")]
     port: u16,
+
+    /// history file to use
+    #[options(short = "f", meta = "<path>")]
+    history_file: PathBuf,
 }
 
 fn get_env_var(key: &str) -> anyhow::Result<String> {
@@ -38,6 +45,11 @@ async fn main() -> anyhow::Result<()> {
     let args = Args::parse_args_default_or_exit();
     let key = get_env_var("SHAKEN_YOUTUBE_API_KEY")?;
 
+    let history_file = get_env_var("SHAKEN_WHAT_SONG_HISTORY_FILE")
+        .ok()
+        .map(PathBuf::from)
+        .unwrap_or(args.history_file);
+
     let port = get_env_var("SHAKEN_WHAT_SONG_PORT")
         .ok()
         .and_then(|c| c.parse().ok())
@@ -52,16 +64,19 @@ async fn main() -> anyhow::Result<()> {
     let addr = format!("{}:{}", address, port);
     let addr = tokio::net::lookup_host(&addr).await?.next().unwrap();
 
-    start_server(addr, &key, &bearer).await
+    start_server(addr, &history_file, &key, &bearer).await
 }
 
-async fn start_server(addr: SocketAddr, api_key: &str, bearer: &str) -> anyhow::Result<()> {
-    let auth = RequireAuthorizationLayer::bearer(bearer);
-
-    let youtube = youtube::router(api_key, "list.csv").await?;
+async fn start_server(
+    addr: SocketAddr,
+    history_file: &Path,
+    api_key: &str,
+    bearer: &str,
+) -> anyhow::Result<()> {
+    let youtube = youtube::router(api_key, history_file).await?;
     let router = axum::Router::new()
         .nest("/youtube", youtube)
-        .route_layer(auth);
+        .route_layer(RequireAuthorizationLayer::bearer(bearer));
 
     log::info!("listening on: {}", addr);
     axum::Server::bind(&addr)
