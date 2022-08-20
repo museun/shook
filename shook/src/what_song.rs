@@ -171,7 +171,7 @@ impl Youtube {
     async fn create(config: crate::config::Youtube) -> Self {
         Self {
             client: reqwest::Client::new(),
-            ep: config.endpoint,
+            ep: config.endpoint.into_string(),
         }
     }
 

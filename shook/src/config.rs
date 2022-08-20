@@ -24,7 +24,7 @@ impl ConfigPath for AnotherViewer {
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Youtube {
-    pub endpoint: String,
+    pub endpoint: Secret,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
@@ -88,7 +88,7 @@ impl Config {
                 filter_patterns_path: PathBuf::from("./data/filter_patterns.yaml"),
             },
             youtube: Youtube {
-                endpoint: String::from("http://localhost:50000/youtube"),
+                endpoint: Secret::key("SHAKEN_WHAT_SONG_REMOTE"),
             },
             user_defined: UserDefined {
                 user_defined_path: PathBuf::from("./data/user_defined.json"),
