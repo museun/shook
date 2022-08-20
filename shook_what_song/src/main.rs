@@ -1,10 +1,10 @@
 use std::net::SocketAddr;
 
 use gumdrop::Options;
+use tower_http::auth::RequireAuthorizationLayer;
 
 pub mod helpers;
 mod history;
-mod spotify;
 mod youtube;
 
 #[derive(gumdrop::Options, Debug)]
@@ -21,6 +21,10 @@ struct Args {
     port: u16,
 }
 
+fn get_env_var(key: &str) -> anyhow::Result<String> {
+    std::env::var(key).or_else(|_| anyhow::bail!("cannot find env var for '{key}'"))
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     simple_env_load::load_env_from(&[".dev.env"]);
@@ -32,21 +36,32 @@ async fn main() -> anyhow::Result<()> {
     .init()?;
 
     let args = Args::parse_args_default_or_exit();
-    let key = std::env::var("SHAKEN_YOUTUBE_API_KEY")?;
+    let key = get_env_var("SHAKEN_YOUTUBE_API_KEY")?;
 
-    let addr = format!("{}:{}", args.address, args.port);
+    let port = get_env_var("SHAKEN_WHAT_SONG_PORT")
+        .ok()
+        .and_then(|c| c.parse().ok())
+        .unwrap_or(args.port);
+
+    let address = get_env_var("SHAKEN_WHAT_SONG_ADDRESS")
+        .ok()
+        .unwrap_or(args.address);
+
+    let bearer = get_env_var("SHAKEN_WHAT_SONG_BEARER_TOKEN")?;
+
+    let addr = format!("{}:{}", address, port);
     let addr = tokio::net::lookup_host(&addr).await?.next().unwrap();
 
-    start_server(addr, &key).await
+    start_server(addr, &key, &bearer).await
 }
 
-// TODO make this part of the bot, proper
-async fn start_server(addr: SocketAddr, api_key: &str) -> anyhow::Result<()> {
+async fn start_server(addr: SocketAddr, api_key: &str, bearer: &str) -> anyhow::Result<()> {
+    let auth = RequireAuthorizationLayer::bearer(bearer);
+
     let youtube = youtube::router(api_key, "list.csv").await?;
-    let spotify = spotify::router("spotify.csv").await?;
     let router = axum::Router::new()
         .nest("/youtube", youtube)
-        .nest("/spotify", spotify);
+        .route_layer(auth);
 
     log::info!("listening on: {}", addr);
     axum::Server::bind(&addr)
