@@ -1,0 +1,9 @@
+/target
+.dev.env
+.env
+*.json
+/db
+*.txt
+*.sdb
+*.db
+*.tmp

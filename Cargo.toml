@@ -1,10 +1,12 @@
 [workspace]
 members = [
     "shook",
+    "shook_brain",
     "shook_config",
     "shook_core",
     "shook_helix",
     "shook_local",
+    "shook_markov",
     "shook_twilight",
     "shook_twitch",
     "shook_what_song"
