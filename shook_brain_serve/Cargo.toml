@@ -1,9 +1,8 @@
 [package]
-name    = "shook_brain"
+name    = "shook_brain_serve"
 version = "0.1.0"
 edition = "2021"
 license = "0BSD"
-default-run = "shook_brain"
 
 [dependencies]
 shook_markov = { path = "../shook_markov" }

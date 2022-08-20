@@ -1648,7 +1648,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "shook_brain"
+name = "shook_brain_make"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "gumdrop",
+ "log",
+ "shook_markov",
+ "zstd",
+]
+
+[[package]]
+name = "shook_brain_serve"
 version = "0.1.0"
 dependencies = [
  "alto_logger",
@@ -1663,18 +1675,6 @@ dependencies = [
  "simple_env_load",
  "tokio",
  "tower-http",
- "zstd",
-]
-
-[[package]]
-name = "shook_brain_make"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bincode",
- "gumdrop",
- "log",
- "shook_markov",
  "zstd",
 ]
 
