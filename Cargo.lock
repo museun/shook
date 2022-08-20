@@ -1667,11 +1667,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "shook_config"
+name = "shook_brain_make"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
+ "gumdrop",
  "log",
+ "shook_markov",
+ "zstd",
+]
+
+[[package]]
+name = "shook_config"
+version = "0.1.0"
+dependencies = [
  "serde",
 ]
 
@@ -1688,7 +1698,6 @@ dependencies = [
  "time 0.3.13",
  "tokio",
  "tokio-stream",
- "twilight-model",
 ]
 
 [[package]]

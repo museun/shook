@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "shook",
-    "shook_brain",
+    "shook_brain_make",
+    "shook_brain_serve",
     "shook_config",
     "shook_core",
     "shook_helix",

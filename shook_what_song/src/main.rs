@@ -23,7 +23,7 @@ struct Args {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
-    simple_env_load::load_env_from(&[".dev.env", ".env"]);
+    simple_env_load::load_env_from(&[".dev.env"]);
     alto_logger::TermLogger::new(
         alto_logger::Options::default()
             .with_time(alto_logger::TimeConfig::relative_now())
