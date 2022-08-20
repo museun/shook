@@ -24,7 +24,7 @@ impl<'de> serde::Deserialize<'de> for Patterns {
         list.into_iter()
             .map(|re| Regex::new(&*re).map_err(D::Error::custom))
             .collect::<Result<_, D::Error>>()
-            .map(|list| Patterns { list })
+            .map(|list| Self { list })
     }
 }
 

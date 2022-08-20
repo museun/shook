@@ -21,7 +21,7 @@ impl<T> Clone for History<T> {
 }
 
 impl<T> History<T> {
-    pub async fn load(path: impl Into<PathBuf>) -> anyhow::Result<Self>
+    pub async fn load(path: impl Into<PathBuf> + Send) -> anyhow::Result<Self>
     where
         T: std::str::FromStr,
         T::Err: Into<anyhow::Error>,
@@ -55,7 +55,7 @@ impl<T> History<T> {
 
     pub async fn add(&self, item: T) -> anyhow::Result<()>
     where
-        T: ToRow,
+        T: ToRow + Send + Sync,
     {
         let mut file = tokio::fs::OpenOptions::new()
             .create(true)
@@ -74,21 +74,21 @@ impl<T> History<T> {
 
     pub async fn current(&self) -> Option<T>
     where
-        T: Clone,
+        T: Send + Clone,
     {
         self.list.lock().await.last().cloned()
     }
 
     pub async fn previous(&self) -> Option<T>
     where
-        T: Clone,
+        T: Send + Clone,
     {
         self.list.lock().await.iter().rev().nth(1).cloned()
     }
 
     pub async fn all(&self) -> Vec<T>
     where
-        T: Clone,
+        T: Send + Clone,
     {
         self.list.lock().await.clone()
     }

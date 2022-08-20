@@ -91,7 +91,7 @@ impl TestBinding {
         std::mem::take(&mut self.responses)
     }
 
-    pub async fn send_message<B: BuildTestMessage>(&mut self, data: &str) {
+    pub async fn send_message<B: BuildTestMessage + Send>(&mut self, data: &str) {
         let mut builder = B::default()
             .with_data(data)
             .with_channel(&self.channel)

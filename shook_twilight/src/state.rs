@@ -33,7 +33,7 @@ where
             .map(|s| s.into_iter().map(|(k, v)| (k, Arc::new(v))).collect())
             .map(Mutex::new)
             .map(Arc::new)
-            .map(|map| Map { map })
+            .map(|map| Self { map })
     }
 }
 
@@ -55,11 +55,14 @@ where
     }
 }
 
-impl<T> Map<T> {
+impl<T> Map<T>
+where
+    T: Send,
+{
     pub async fn update<S, Fut>(
         &self,
         id: Id<T>,
-        vacant: impl Fn() -> Fut + Send,
+        vacant: impl Fn() -> Fut + Send + Sync,
     ) -> anyhow::Result<Arc<String>>
     where
         S: Into<String> + Send,

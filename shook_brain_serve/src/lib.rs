@@ -25,7 +25,7 @@ pub use managed::ManagedBrain;
 pub const SAVE_DURATION: Duration = Duration::from_secs(5 * 60);
 pub const GENERATE_TIMEOUT: Duration = Duration::from_secs(5);
 
-pub async fn load(path: impl Into<PathBuf>) -> anyhow::Result<Brain> {
+pub async fn load(path: impl Into<PathBuf> + Send) -> anyhow::Result<Brain> {
     let path = path.into();
     tokio::task::spawn_blocking(move || {
         let reader = std::io::BufReader::new(std::fs::File::open(path)?);

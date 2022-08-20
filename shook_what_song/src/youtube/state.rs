@@ -14,7 +14,7 @@ pub struct State {
 }
 
 impl State {
-    pub async fn new(client: Client, path: impl AsRef<Path> + Send) -> anyhow::Result<Self> {
+    pub async fn new(client: Client, path: impl AsRef<Path> + Send + Sync) -> anyhow::Result<Self> {
         let history = History::load(path.as_ref()).await?;
         Ok(Self { history, client })
     }

@@ -115,7 +115,7 @@ impl<const N: usize> Bot<N> {
         &'r self,
         ch: Id<ChannelMarker>,
         data: &'r str,
-        map: impl Fn(CreateMessage<'r>) -> CreateMessage<'r>,
+        map: impl Fn(CreateMessage<'r>) -> CreateMessage<'r> + Send,
     ) -> anyhow::Result<()> {
         let msg = self.client.create_message(ch).content(data).map(map)?;
         let _ = msg.exec().await;

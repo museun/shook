@@ -81,7 +81,7 @@ enum Line<'a> {
 
 async fn send_message(
     mut w: impl AsyncWrite + Send + Unpin + Sized,
-    msg: impl serde::Serialize,
+    msg: impl serde::Serialize + Send + Sync,
 ) -> tokio::io::Result<()> {
     w.write_all(&serde_json::to_vec(&msg).expect("valid json"))
         .await?;

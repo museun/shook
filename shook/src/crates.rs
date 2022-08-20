@@ -9,7 +9,7 @@ enum Match {
 impl Match {
     const fn crate_(&self) -> &Crate {
         match self {
-            Match::Exact(crate_) | Match::Closest(crate_) => crate_,
+            Self::Exact(crate_) | Self::Closest(crate_) => crate_,
         }
     }
 }
@@ -17,7 +17,7 @@ impl Match {
 impl Render for Match {
     fn render(&self, flavor: RenderFlavor) -> Vec<Response> {
         let crate_ = self.crate_();
-        let exact = matches!(self, Match::Closest { .. })
+        let exact = matches!(self, Self::Closest { .. })
             .then_some("# (this was the closest match I could find)")
             .unwrap_or_default();
 
