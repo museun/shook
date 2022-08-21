@@ -16,12 +16,8 @@ struct Args {
     help: bool,
 
     /// address to listen on
-    #[options(default = "localhost")]
+    #[options(default = "127.0.0.1:58810")]
     address: String,
-
-    /// port to listen on
-    #[options(default = "58810")]
-    port: u16,
 
     /// history file to use
     #[options(short = "f", meta = "<path>")]
@@ -50,21 +46,14 @@ async fn main() -> anyhow::Result<()> {
         .map(PathBuf::from)
         .unwrap_or(args.history_file);
 
-    let port = get_env_var("SHAKEN_WHAT_SONG_PORT")
+    let addr = get_env_var("SHAKEN_WHAT_SONG_REMOTE")
         .ok()
         .and_then(|c| c.parse().ok())
-        .unwrap_or(args.port);
-
-    let address = get_env_var("SHAKEN_WHAT_SONG_ADDRESS")
-        .ok()
         .unwrap_or(args.address);
 
     let bearer = get_env_var("SHAKEN_WHAT_SONG_BEARER_TOKEN")?;
 
-    let addr = format!("{}:{}", address, port);
-    let addr = tokio::net::lookup_host(&addr).await?.next().unwrap();
-
-    start_server(addr, &history_file, &key, &bearer).await
+    start_server(addr.parse()?, &history_file, &key, &bearer).await
 }
 
 async fn start_server(

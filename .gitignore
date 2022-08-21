@@ -1,6 +1,7 @@
 /target
 .dev.env
 .prod.env
+.secrets.env
 *.json
 *.yaml
 !default_help.yaml

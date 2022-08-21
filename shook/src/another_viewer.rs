@@ -142,7 +142,7 @@ impl AnotherViewer {
 
         let data = self.process_data(data);
         self.client
-            .post(format!("{}/train", &*self.endpoint))
+            .post(format!("{}/shaken/brain/train", &*self.endpoint))
             .bearer_auth(&*self.bearer_token)
             .json(&Req { data })
             .send()
@@ -171,7 +171,7 @@ impl AnotherViewer {
         };
 
         self.client
-            .get(format!("{}/generate", &*self.endpoint))
+            .get(format!("{}/shaken/brain/generate", &*self.endpoint))
             .json(&req)
             .timeout(Duration::from_secs(3))
             .send()

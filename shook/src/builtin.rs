@@ -1,15 +1,39 @@
-use std::{collections::BTreeSet, time::SystemTime};
+use std::{
+    collections::{BTreeSet, HashMap},
+    time::SystemTime,
+};
 
 use anyhow::Context;
-use shook_core::{help::Descriptions, prelude::*, FormatTime};
+use shook_core::{help::Descriptions, prelude::*, FormatTime, USER_AGENT};
 use shook_local::LocalPort;
 use tokio::time::Instant;
 
-pub struct Builtin(Instant);
+struct OAuth {
+    token: String,
+}
+
+pub struct Builtin {
+    uptime: Instant,
+    oauth: OAuth,
+    gist_id: String,
+}
 
 impl Builtin {
     pub async fn bind(state: GlobalState) -> anyhow::Result<SharedCallable> {
-        Ok(Binding::create(state, Self(Instant::now()))
+        let crate::config::Builtin {
+            github_oauth_token,
+            settings_gist_id,
+        } = state.get_owned().await;
+
+        let this = Self {
+            uptime: Instant::now(),
+            oauth: OAuth {
+                token: github_oauth_token.into_string(),
+            },
+            gist_id: settings_gist_id,
+        };
+
+        Ok(Binding::create(state, this)
             .await
             .bind(Self::theme)
             .bind(Self::font)
@@ -135,7 +159,7 @@ impl Builtin {
     }
 
     async fn bot_uptime(self: Arc<Self>, _: Message) -> impl Render {
-        let uptime = self.0.elapsed().as_readable_time();
+        let uptime = self.uptime.elapsed().as_readable_time();
         Simple {
             twitch: format!("I've been running for: {uptime}"),
             discord: format!("I've been running for: `{uptime}`"),
@@ -145,7 +169,8 @@ impl Builtin {
     async fn uptime(self: Arc<Self>, msg: Message) -> impl Render {
         let channel = match msg.args().get("channel") {
             Some(channel) => channel.to_string(),
-            None => msg.streamer_name().await,
+            None if msg.is_from_twitch() => msg.streamer_name().await,
+            None => anyhow::bail!("that isn't usable on this transport"),
         };
 
         let client = msg.state().get::<shook_helix::HelixClient>().await;
@@ -161,27 +186,83 @@ impl Builtin {
     }
 
     async fn theme(self: Arc<Self>, _: Message) -> impl Render {
-        let current = what_theme::get_current_theme()?;
-        let settings = what_theme::VsCodeSettings::new()?;
+        let FontsAndTheme {
+            theme_url,
+            theme_variant,
+            ..
+        } = self.get_current_settings().await?;
 
-        let theme = settings
-            .find_theme(&current)
-            .with_context(|| "I can't figure that out")?;
-
-        let url = theme.url();
-        let variant = theme.variant();
         Ok(Simple {
-            twitch: format!("'{variant}' from {url}"),
-            discord: format!("`{variant}` from <{url}>"),
+            twitch: format!("'{theme_variant}' from {theme_url}"),
+            discord: format!("`{theme_variant}` from <{theme_url}>"),
         })
     }
 
     async fn font(self: Arc<Self>, _: Message) -> impl Render {
-        let fonts = what_theme::get_current_fonts()?;
-        let (editor, terminal) = (fonts.editor(), fonts.terminal());
+        let FontsAndTheme {
+            editor_font,
+            terminal_font,
+            ..
+        } = self.get_current_settings().await?;
+
         Ok(Simple {
-            twitch: format!("terminal is using: '{editor}' and editor is using '{terminal}'"),
-            discord: format!("terminal is using: `{editor}` and editor is using `{terminal}`"),
+            twitch: format!(
+                "terminal is using: '{editor_font}' and editor is using '{terminal_font}'"
+            ),
+            discord: format!(
+                "terminal is using: `{editor_font}` and editor is using `{terminal_font}`"
+            ),
         })
     }
+
+    async fn get_current_settings(&self) -> anyhow::Result<FontsAndTheme> {
+        #[derive(Debug, ::serde::Serialize, ::serde::Deserialize)]
+        struct File {
+            content: String,
+            raw_url: String,
+        }
+
+        async fn get_gist_files(
+            id: &str,
+            OAuth { token }: &OAuth,
+        ) -> anyhow::Result<HashMap<String, File>> {
+            #[derive(Debug, ::serde::Serialize, ::serde::Deserialize)]
+            struct Response {
+                files: HashMap<String, File>,
+            }
+
+            let resp: Response = [
+                ("Accept", "application/vnd.github+json"),
+                ("Authorization", &format!("token {token}")),
+                ("User-Agent", USER_AGENT),
+            ]
+            .into_iter()
+            .fold(
+                reqwest::Client::new().get(format!("https://api.github.com/gists/{id}")),
+                |req, (k, v)| req.header(k, v),
+            )
+            .send()
+            .await?
+            .json()
+            .await?;
+
+            Ok(resp.files)
+        }
+
+        let files = get_gist_files(&self.gist_id, &self.oauth).await?;
+
+        let file = files
+            .get("vscode settings.json")
+            .with_context(|| "cannot find settings")?;
+
+        serde_json::from_str::<FontsAndTheme>(&file.content).map_err(Into::into)
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct FontsAndTheme {
+    editor_font: String,
+    terminal_font: String,
+    theme_url: String,
+    theme_variant: String,
 }

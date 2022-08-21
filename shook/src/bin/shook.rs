@@ -7,13 +7,16 @@ use shook_helix::{EmoteMap, HelixClient, OAuth};
 use persist::{tokio::PersistExt as _, yaml::Yaml};
 
 async fn load_configurations(state: &mut State) -> anyhow::Result<()> {
-    let config = Config::load_from_file::<Yaml>("config").await?;
+    // TODO from env
+
+    let config = Config::load_from_file::<Yaml>(std::env::var("SHOOK_CONFIG_PATH")?).await?;
 
     state.insert(config.twitch);
     state.insert(config.discord);
     state.insert(config.helix);
     state.insert(config.spotify);
     state.insert(config.another_viewer);
+    state.insert(config.builtin);
     state.insert(config.youtube);
     state.insert(config.user_defined);
     state.insert(config.registry);
@@ -33,7 +36,9 @@ async fn load_registry(state: &mut State) -> anyhow::Result<()> {
 async fn init_twitch(state: &mut State) -> anyhow::Result<()> {
     let twitch = state.get::<shook_helix::config::Config>()?;
     let streamer = state
-        .extract(|config: &shook_twitch::config::Config| config.channel.clone())
+        .extract(|config: &shook_twitch::config::Config| {
+            config.channel.trim_start_matches('#').to_string()
+        })
         .map(StreamerName)?;
 
     log::debug!("getting twitch oauth tokens");

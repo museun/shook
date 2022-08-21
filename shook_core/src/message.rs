@@ -15,6 +15,9 @@ where
     fn is_from_moderator(&self) -> bool {
         false
     }
+    fn is_from_twitch(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Clone)]
@@ -55,6 +58,10 @@ impl Message {
 
     pub fn args(&self) -> &Arguments {
         self.args.as_ref().unwrap()
+    }
+
+    pub fn is_from_twitch(&self) -> bool {
+        self.inner.is_from_twitch()
     }
 
     pub const fn state(&self) -> &GlobalState {

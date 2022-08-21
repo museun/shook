@@ -1,0 +1,46 @@
+services:
+  nginx:
+    image: nginx:1.16.0-alpine
+    container_name:
+      "shaken_reverse_proxy"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+
+  shook_brain_serve:
+    build: ./shook_brain_serve
+    env_file:
+      - ./.prod.env
+      - ./.secrets.env
+      - ./.log.env
+    volumes:
+      - "./data/db/:/var/data/shook_brain/db/"
+    expose:
+      - "8000"
+
+  shook_what_song:
+    build: ./shook_what_song
+    env_file:
+      - ./.prod.env
+      - ./.secrets.env
+      - ./.log.env
+    volumes:
+      - "./data/what_song/:/var/data/what_song/"
+    ports:
+      - "50000:8000"
+    expose:
+      - "8000"
+
+  shook:
+    build: ./shook
+    environment:
+      - SHAKEN_CONFIG_PATH=/var/data/shook/config
+    env_file:
+      - ./.prod.env
+      - ./.secrets.env
+      - ./.log.env
+    volumes:
+      - "./data/shook:/var/data/shook/"
+      - "./config.yaml:/var/data/shook/config.yaml"
+      - "./.spotify_token_cache.json:/var/data/shook/.spotify_token_cache.json"

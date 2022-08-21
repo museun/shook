@@ -1,9 +1,9 @@
-use anyhow::Context as _;
 use axum::{
     routing::{get, post},
     Extension, Router, Server,
 };
 use std::{
+    net::SocketAddr,
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -53,16 +53,10 @@ impl BrainExt for Brain {
 }
 
 pub async fn start_server(
-    addr: impl tokio::net::ToSocketAddrs + Send + 'static,
+    addr: &SocketAddr,
     messaging: Messaging,
     bearer: &str,
 ) -> anyhow::Result<()> {
-    log::trace!("resolving hosts");
-    let addr = tokio::net::lookup_host(addr)
-        .await?
-        .next()
-        .with_context(|| "could not resolve an addr")?;
-
     let auth = RequireAuthorizationLayer::bearer(bearer);
     let app = Router::new()
         .route("/generate", get(handlers::generate))

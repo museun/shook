@@ -12,3 +12,15 @@ members = [
     "shook_twitch",
     "shook_what_song"
 ]
+
+[patch.'https://github.com/museun/shook']
+shook_brain_make  = { path = "shook_brain_make" }
+shook_brain_serve = { path = "shook_brain_serve" }
+shook_config      = { path = "shook_config" }
+shook_core        = { path = "shook_core" }
+shook_helix       = { path = "shook_helix" }
+shook_local       = { path = "shook_local" }
+shook_markov      = { path = "shook_markov" }
+shook_twilight    = { path = "shook_twilight" }
+shook_twitch      = { path = "shook_twitch" }
+shook_what_song   = { path = "shook_what_song" }

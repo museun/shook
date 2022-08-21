@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use crate::queue::Queue;
 use anyhow::Context;
@@ -37,12 +37,16 @@ impl SpotifyClient {
         let config = rspotify::Config {
             token_cached: true,
             token_refreshing: true,
+            // TODO use the configuration for this
+            cache_path: PathBuf::from(std::env::var("RSPOTIFY_TOKEN_CACHE_FILE")?),
             ..rspotify::Config::default()
         };
 
         let mut auth = AuthCodeSpotify::with_config(credentials, oauth, config);
         let url = auth.get_authorize_url(false)?;
-        auth.prompt_for_token(&url).await?; // TODO don't do this
+        auth.prompt_for_token(&url).await?;
+
+        // auth.read_token_cache(false).await?;
 
         Ok(Self {
             client: Arc::new(auth),

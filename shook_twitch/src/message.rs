@@ -61,4 +61,8 @@ impl MessageType for Message {
         self.badge_iter()
             .any(|(key, val)| key == "moderator" && val == "1")
     }
+
+    fn is_from_twitch(&self) -> bool {
+        true
+    }
 }

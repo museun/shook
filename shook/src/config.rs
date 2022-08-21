@@ -50,6 +50,12 @@ impl ConfigPath for Registry {
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+pub struct Builtin {
+    pub github_oauth_token: Ephemeral,
+    pub settings_gist_id: String,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Config {
     pub twitch: shook_twitch::config::Config,
     pub discord: shook_twilight::config::Config,
@@ -58,6 +64,7 @@ pub struct Config {
     pub spotify: self::Spotify,
     pub another_viewer: self::AnotherViewer,
     pub youtube: self::Youtube,
+    pub builtin: self::Builtin,
     pub user_defined: self::UserDefined,
     pub registry: self::Registry,
 }
@@ -83,12 +90,16 @@ impl Config {
                 client_secret: Ephemeral::key("SHAKEN_SPOTIFY_CLIENT_SECRET"),
             },
             another_viewer: AnotherViewer {
-                endpoint: Secret::key("SHAKEN_BRAIN_REMOTE"),
+                endpoint: Secret::key("SHAKEN_REVERSE_PROXY"),
                 bearer_token: Ephemeral::key("SHAKEN_BRAIN_GENERATE_TOKEN"),
                 filter_patterns_path: PathBuf::from("./data/filter_patterns.yaml"),
             },
+            builtin: Builtin {
+                github_oauth_token: Ephemeral::key("SHAKEN_GITHUB_OAUTH_TOKEN"),
+                settings_gist_id: String::from("6f7b1d5e0c293e927959f74c884b039c"),
+            },
             youtube: Youtube {
-                endpoint: Secret::key("SHAKEN_WHAT_SONG_REMOTE"),
+                endpoint: Secret::key("SHAKEN_REVERSE_PROXY"),
             },
             user_defined: UserDefined {
                 user_defined_path: PathBuf::from("./data/user_defined.json"),

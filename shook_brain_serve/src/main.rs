@@ -19,7 +19,8 @@ struct Config {
     address: String,
 }
 
-async fn load(path: &Path) -> anyhow::Result<Messaging> {
+async fn load(path: impl AsRef<Path> + Send) -> anyhow::Result<Messaging> {
+    let path = path.as_ref();
     let brain = shook_brain_serve::load(path).await?;
     log::trace!("spawning brain handle thread");
     let msg = ManagedBrain::spawn(brain, path, GENERATE_TIMEOUT, SAVE_DURATION);
@@ -32,7 +33,7 @@ fn get_env_var(key: &str) -> anyhow::Result<String> {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
-    simple_env_load::load_env_from([".dev.env"]);
+    // simple_env_load::load_env_from([".dev.env"]);
     alto_logger::TermLogger::new(
         alto_logger::Options::default()
             .with_time(alto_logger::TimeConfig::relative_now())
@@ -51,5 +52,7 @@ async fn main() -> anyhow::Result<()> {
     let brain = load(&file).await?;
     log::debug!("loaded brain");
 
-    start_server(config.address, brain, &bearer).await
+    let address = get_env_var("SHAKEN_BRAIN_REMOTE").unwrap_or(config.address);
+    let address = address.parse()?;
+    start_server(&address, brain, &bearer).await
 }
