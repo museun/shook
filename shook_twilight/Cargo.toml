@@ -4,14 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.62"
-log = "0.4.17"
-serde = "1.0.143" # do we even use this?
-tokio = "1.20.1"
-tokio-stream = "0.1.9"
+anyhow           = "1.0.62"
+log              = "0.4.17"
+serde            = "1.0.143" # do we even use this?
+tokio            = "1.20.1"
+tokio-stream     = "0.1.9"
 twilight-gateway = "0.13.0"
-twilight-http = "0.13.0"
-twilight-model = "0.13.0"
+twilight-http    = "0.13.0"
+twilight-model   = "0.13.0"
 
-shook_core = { git = "https://github.com/museun/shook" }
+shook_core   = { git = "https://github.com/museun/shook" }
 shook_config = { git = "https://github.com/museun/shook" }

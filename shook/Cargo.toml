@@ -24,9 +24,6 @@ simple_env_load  = "0.2.0"
 time             = { version = "0.3.13", features = ["local-offset", "formatting"] }
 tokio            = { version = "1.20.1", features = ["fs", "rt", "sync", "io-util", "net", "macros", "test-util"] }
 tokio-stream     = { version = "0.1.9", features = ["sync"] }
-twilight-gateway = { version = "0.13.0", default-features = false, features = ["native"] }
-twilight-http    = { version = "0.13.0", default-features = false, features = ["native"] }
-twilight-model   = "0.13.0"
 url              = "2.2.2"
 
 fastrand_ext     = { git = "https://github.com/museun/fastrand_ext", version = "0.1.0" }
